@@ -3,7 +3,7 @@ pragma solidity 0.8.13;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, RentalsController, DelegationWalletFactory, TestNft, Config, TestNftPlatform } from "./utils/Config.sol";
+import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, Config, TestNftPlatform } from "./utils/Config.sol";
 
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
@@ -11,7 +11,7 @@ import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/Upgradea
 contract DelegationRecipes is Config {
     function setUp() public {
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy();
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(address(this));
         safe = GnosisSafe(payable(safeProxy));
     }
 

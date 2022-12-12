@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, RentalsController, DelegationWalletFactory, TestNft, TestNftPlatform, Config } from "./utils/Config.sol";
+import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, TestNftPlatform, Config } from "./utils/Config.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
 
@@ -29,7 +29,7 @@ contract DelegationGuardTest is Config {
         // testNftPlatform = new TestNftPlatform(address(testNft));
 
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy();
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(address(this));
 
         safe = GnosisSafe(payable(safeProxy));
         delegationOwner = DelegationOwner(delegationOwnerProxy);

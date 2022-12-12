@@ -4,7 +4,6 @@ pragma solidity 0.8.13;
 import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
 import { DelegationGuard } from "./DelegationGuard.sol";
 import { DelegationRecipes } from "./DelegationRecipes.sol";
-import { RentalsController } from "./RentalsController.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -58,7 +57,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     /**
      * @notice The delegation controller address. Allowed to execute delegation related functions.
      */
-    RentalsController public delegationController;
+    address public delegationController;
     /**
      * @notice The lock controller address. Allowed to execute asset locking related functions.
      */
@@ -221,7 +220,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
 
         safe = _safe;
         owner = _owner;
-        delegationController = RentalsController(_delegationController);
+        delegationController = _delegationController;
         lockController = _lockController;
         recipes = DelegationRecipes(_recipes);
 

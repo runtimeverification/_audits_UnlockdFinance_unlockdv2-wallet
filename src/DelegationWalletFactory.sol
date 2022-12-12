@@ -12,6 +12,8 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 
+import "forge-std/console2.sol";
+
 /**
  * @title DelegationWalletFactory
  * @author BootNode
@@ -63,7 +65,7 @@ contract DelegationWalletFactory {
     /**
      * @notice Deploys a new DelegationWallet with the msg.sender as the owner.
      */
-    function deploy()
+    function deploy(address _delegationController)
         external
         returns (
             address,
@@ -71,7 +73,7 @@ contract DelegationWalletFactory {
             address
         )
     {
-        return deployFor(msg.sender);
+        return deployFor(msg.sender, _delegationController);
     }
 
     /**
