@@ -20,16 +20,19 @@ contract Config is Test {
     bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
 
     uint256 public kakarotoKey = 2;
-    address public kakaroto = vm.addr(2);
+    address public kakaroto = vm.addr(kakarotoKey);
 
     uint256 public karpinchoKey = 3;
-    address public karpincho = vm.addr(3);
+    address public karpincho = vm.addr(karpinchoKey);
 
     uint256 public vegetaKey = 4;
-    address public vegeta = vm.addr(4);
+    address public vegeta = vm.addr(vegetaKey);
 
-    uint256 public nftfiKey = 5;
-    address public nftfi = vm.addr(5);
+    uint256 public delegationControllerKey = 5;
+    address public delegationController = vm.addr(delegationControllerKey);
+
+    uint256 public nftfiKey = 6;
+    address public nftfi = vm.addr(nftfiKey);
 
     bytes4 public constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
     bytes4 public constant UPDATED_MAGIC_VALUE = 0x1626ba7e;
@@ -102,12 +105,12 @@ contract Config is Test {
         delegationRecipes.add(address(testNft), contracts, selectors, descriptions);
     }
 
-    function getSignature(bytes memory toSign, uint256 key) public returns (bytes memory) {
+    function getSignature(bytes memory toSign, uint256 key) public pure returns (bytes memory) {
         (uint8 v, bytes32 r, bytes32 _s) = vm.sign(key, ECDSA.toEthSignedMessageHash(toSign));
         return abi.encodePacked(r, _s, v);
     }
 
-    function getSignature(bytes32 toSign, uint256 key) public returns (bytes memory) {
+    function getSignature(bytes32 toSign, uint256 key) public pure returns (bytes memory) {
         (uint8 v, bytes32 r, bytes32 _s) = vm.sign(key, ECDSA.toEthSignedMessageHash(toSign));
         return abi.encodePacked(r, _s, v);
     }
@@ -117,7 +120,7 @@ contract Config is Test {
         address to,
         bytes memory data,
         Enum.Operation operation
-    ) public returns (bytes memory) {
+    ) public view returns (bytes memory) {
         bytes32 toSign = GnosisSafe(payable(safeProxy)).getTransactionHash(
             to,
             0,

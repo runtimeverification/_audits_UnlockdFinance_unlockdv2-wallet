@@ -469,16 +469,16 @@ contract DelegationOwner is ISignatureValidator, Initializable {
         _checkOwnedAndNotApproved(_asset, _id);
 
         bytes32 id = assetId(_asset, _id);
-        if (lockedAssets[id] > 0)  revert DelegationOwner__lockAsset_assetLocked(); // TODO - rename, asset is already locked
+        if (lockedAssets[id] > 0)  revert DelegationOwner__lockAsset_assetLocked();
         if (_claimDate < block.timestamp ) revert DelegationOwner__lockAsset_invalidClaimDate();
 
         Delegation storage delegation = delegations[id];
 
-        if (_isDelegating(delegation) && delegation.to < _claimDate) revert DelegationOwner__lockAsset_assetDelegatedLonger();
+        if (_isDelegating(delegation) && delegation.to > _claimDate) revert DelegationOwner__lockAsset_assetDelegatedLonger();
         if (
             _isDelegating(signatureDelegation) &&
             signatureDelegationAssets[currentSignatureDelegationAssets].contains(id) &&
-            signatureDelegation.to < _claimDate
+            signatureDelegation.to > _claimDate
         ) revert DelegationOwner__lockAsset_signatureDelegatedLonger();
 
         lockedAssets[id] = _claimDate;

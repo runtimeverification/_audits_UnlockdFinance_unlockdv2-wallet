@@ -11,27 +11,26 @@ import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/Upgradea
 contract DelegationWalletFactoryTest is Config {
     function setUp() public {
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(address(this));
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(delegationController);
         safe = GnosisSafe(payable(safeProxy));
     }
 
-    // function test_deploy_should_work() public {
-    //     assertEq(safe.getThreshold(), 1);
+    function test_deploy_should_work() public {
+        assertEq(safe.getThreshold(), 1);
 
-    //     address[] memory owners = safe.getOwners();
-    //     assertEq(owners.length, 2);
-    //     assertEq(owners[0], kakaroto);
-    //     assertEq(owners[1], delegationOwnerProxy);
+        address[] memory owners = safe.getOwners();
+        assertEq(owners.length, 2);
+        assertEq(owners[0], kakaroto);
+        assertEq(owners[1], delegationOwnerProxy);
 
-    //     bytes memory storageAt = safe.getStorageAt(uint256(GUARD_STORAGE_SLOT), 1);
-    //     address configuredGuard = abi.decode(storageAt, (address));
-    //     assertEq(configuredGuard, delegationGuardProxy);
+        bytes memory storageAt = safe.getStorageAt(uint256(GUARD_STORAGE_SLOT), 1);
+        address configuredGuard = abi.decode(storageAt, (address));
+        assertEq(configuredGuard, delegationGuardProxy);
 
-    //     assertEq(DelegationOwner(delegationOwnerProxy).owner(), kakaroto);
-    //     assertEq(address(DelegationOwner(delegationOwnerProxy).guard()), configuredGuard);
-    //     assertEq(DelegationOwner(delegationOwnerProxy).safe(), safeProxy);
-    //     assertEq(DelegationOwner(delegationOwnerProxy).lockController(), nftfi);
-
-    //     assertEq(address(rentalsController.ownerBySafe(address(safe))), delegationOwnerProxy);
-    // }
+        assertEq(DelegationOwner(delegationOwnerProxy).owner(), kakaroto);
+        assertEq(address(DelegationOwner(delegationOwnerProxy).guard()), configuredGuard);
+        assertEq(DelegationOwner(delegationOwnerProxy).safe(), safeProxy);
+        assertEq(DelegationOwner(delegationOwnerProxy).delegationController(), delegationController);
+        assertEq(DelegationOwner(delegationOwnerProxy).lockController(), nftfi);
+    }
 }
