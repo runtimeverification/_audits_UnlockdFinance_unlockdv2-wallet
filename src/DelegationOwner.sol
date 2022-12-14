@@ -54,10 +54,19 @@ contract DelegationOwner is ISignatureValidator, Initializable {
      * @notice The owner of the DelegationWallet - TODO do we need this.
      */
     address public owner;
+
+    // TODO - Add delegationController setter
+    //      - Should we have multiple delegation controllers?
+    //      - Who can set a new delegation controller? The wallet owner?
     /**
      * @notice The delegation controller address. Allowed to execute delegation related functions.
      */
     address public delegationController;
+
+    // TODO - Add lockController setter
+    //      - Should we have multiple lock controllers?
+    //      - Who can set a new lock controller? The wallet owner?
+    //      - If multiple lock controllers, we need to know which one locked an asset, only that should be able to unlock or claim
     /**
      * @notice The lock controller address. Allowed to execute asset locking related functions.
      */
@@ -95,11 +104,6 @@ contract DelegationOwner is ISignatureValidator, Initializable {
      */
     mapping(bytes32 => uint256) public lockedAssets;
 
-    // TODO - better naming
-    /**
-     * @notice Stores for each selling assets the date until it can be paid and claim. keccak256(address, nft id) => dueDate
-     */
-    mapping(bytes32 => uint256) public sellingAssets;
 
     // ========== Events ===========
     event NewDelegation(
@@ -122,41 +126,16 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     error DelegationGuard__initialize_invalidRecipes();
     error DelegationGuard__initialize_invalidSafe();
     error DelegationGuard__initialize_invalidOwner();
-    error DelegationOwner__onlyOwner();
+
     error DelegationOwner__onlyDelegationController();
     error DelegationOwner__onlyLockController();
-    error DelegationOwner__onlyFactory();
-    error DelegationOwner__configuredGuard();
-    error DelegationOwner__delegate_assetNotOwned();
-    error DelegationOwner__delegate_assetApproved();
+
     error DelegationOwner__delegate_currentlyDelegated();
     error DelegationOwner__delegate_invalidDelegatee();
     error DelegationOwner__delegate_invalidDuration();
     error DelegationOwner__delegate_invalidExpiry();
-    error DelegationOwner__delegate_arityMismatch();
     error DelegationOwner__endDelegate_notDelegated();
-    error DelegationOwner__isValidSignature_notDelegated();
-    error DelegationOwner__isValidSignature_invalidSigner();
-    error DelegationOwner__isValidSignature_noSignatureAllowed();
-    error DelegationOwner__isValidSignature_invalidExecSig();
-    error DelegationOwner__execTransaction_notDelegated();
-    error DelegationOwner__execTransaction_invalidDelegatee();
-    error DelegationOwner__execTransaction_notAllowedFunction();
-    error DelegationOwner__execTransaction_notSuccess();
-    error DelegationOwner__lockAsset_assetSold();
-    error DelegationOwner__lockAsset_invalidClaimDate();
-    error DelegationOwner__lockAsset_assetNotOwned();
-    error DelegationOwner__lockAsset_assetLocked();
-    error DelegationOwner__lockAsset_assetDelegatedLonger();
-    error DelegationOwner__lockAsset_signatureDelegatedLonger();
-    error DelegationOwner__transferAsset_assetNotOwned();
-    error DelegationOwner__transferAsset_notSuccess();
-    error DelegationOwner__unlockAsset_assetNotOwned();
-    error DelegationOwner__claimAsset_assetNotOwned();
-    error DelegationOwner__claimAsset_assetNotClaimable();
-    error DelegationOwner__claimAsset_notSuccess();
-    error DelegationOwner__delegateSignature_assetNotOwned();
-    error DelegationOwner__delegateSignature_assetApproved();
+
     error DelegationOwner__delegateSignature_invalidExpiry(address asset, uint256 id);
     error DelegationOwner__delegateSignature_invalidArity();
     error DelegationOwner__delegateSignature_currentlyDelegated();
@@ -164,12 +143,29 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     error DelegationOwner__delegateSignature_invalidDuration();
     error DelegationOwner__endDelegateSignature_invalidArity();
     error DelegationOwner__endDelegateSignature_notDelegated();
+
+    error DelegationOwner__isValidSignature_notDelegated();
+    error DelegationOwner__isValidSignature_invalidSigner();
+    error DelegationOwner__isValidSignature_invalidExecSig();
+
+    error DelegationOwner__execTransaction_notDelegated();
+    error DelegationOwner__execTransaction_invalidDelegatee();
+    error DelegationOwner__execTransaction_notAllowedFunction();
+    error DelegationOwner__execTransaction_notSuccess();
+
+    error DelegationOwner__lockAsset_invalidClaimDate();
+    error DelegationOwner__lockAsset_assetLocked();
+    error DelegationOwner__lockAsset_assetDelegatedLonger();
+    error DelegationOwner__lockAsset_signatureDelegatedLonger();
+    error DelegationOwner__unlockAsset_assetNotOwned();
+
+    error DelegationOwner__transferAsset_assetNotOwned();
+
+    error DelegationOwner__claimAsset_assetNotClaimable();
+    error DelegationOwner__claimAsset_notSuccess();
+
     error DelegationOwner__checkGuardConfigured_noGuard();
-    error DelegationOwner__sellAsset_assetLocked();
-    error DelegationOwner__sellAsset_assetSold();
-    error DelegationOwner__sellAsset_currentlyDelegated();
-    error DelegationOwner__sellAsset_invalidBuyer();
-    error DelegationOwner__delegate_invalidDueDate();
+
     error DelegationOwner__checkOwnedAndNotApproved_assetNotOwned();
     error DelegationOwner__checkOwnedAndNotApproved_assetApproved();
 
