@@ -82,7 +82,6 @@ contract Config is Test {
             gnosisSafeProxyFactory,
             gnosisSafeTemplate,
             compatibilityFallbackHandler,
-            nftfi,
             guardBeacon,
             ownerBeacon,
             address(delegationRecipes),

@@ -12,8 +12,6 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 
-import "forge-std/console2.sol";
-
 /**
  * @title DelegationWalletFactory
  * @author BootNode
@@ -25,7 +23,6 @@ contract DelegationWalletFactory {
     address immutable gnosisSafeProxyFactory;
     address immutable singleton;
     address immutable compatibilityFallbackHandler;
-    address public loanController;
     address immutable guardBeacon;
     address immutable ownerBeacon;
     address immutable recipes;
@@ -46,7 +43,6 @@ contract DelegationWalletFactory {
         address _gnosisSafeProxyFactory,
         address _singleton,
         address _compatibilityFallbackHandler,
-        address _loanController,
         address _guardBeacon,
         address _ownerBeacon,
         address _recipes,
@@ -55,7 +51,6 @@ contract DelegationWalletFactory {
         gnosisSafeProxyFactory = _gnosisSafeProxyFactory;
         singleton = _singleton;
         compatibilityFallbackHandler = _compatibilityFallbackHandler;
-        loanController = _loanController;
         guardBeacon = _guardBeacon;
         ownerBeacon = _ownerBeacon;
         recipes = _recipes;
@@ -65,7 +60,7 @@ contract DelegationWalletFactory {
     /**
      * @notice Deploys a new DelegationWallet with the msg.sender as the owner.
      */
-    function deploy(address _delegationController)
+    function deploy(address _delegationController, address _lockController)
         external
         returns (
             address,
@@ -73,14 +68,14 @@ contract DelegationWalletFactory {
             address
         )
     {
-        return deployFor(msg.sender, _delegationController);
+        return deployFor(msg.sender, _delegationController, _lockController);
     }
 
     /**
      * @notice Deploys a new DelegationWallet for a given owner.
      * @param _owner - The owner's address.
      */
-    function deployFor(address _owner, address _delegationController)
+    function deployFor(address _owner, address _delegationController, address _lockController)
         public
         returns (
             address,
@@ -117,7 +112,7 @@ contract DelegationWalletFactory {
             address(safeProxy),
             _owner,
             _delegationController,
-            loanController
+            _lockController
         );
         address delegationGuard = address(delegationOwner.guard());
 

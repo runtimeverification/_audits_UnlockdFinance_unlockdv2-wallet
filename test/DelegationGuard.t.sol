@@ -29,7 +29,7 @@ contract DelegationGuardTest is Config {
         // testNftPlatform = new TestNftPlatform(address(testNft));
 
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(address(this));
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(delegationController, nftfi);
 
         safe = GnosisSafe(payable(safeProxy));
         delegationOwner = DelegationOwner(delegationOwnerProxy);

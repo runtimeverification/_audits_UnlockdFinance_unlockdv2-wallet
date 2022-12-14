@@ -11,7 +11,7 @@ import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/Upgradea
 contract DelegationRecipes is Config {
     function setUp() public {
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(address(this));
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(address(this), nftfi);
         safe = GnosisSafe(payable(safeProxy));
     }
 
