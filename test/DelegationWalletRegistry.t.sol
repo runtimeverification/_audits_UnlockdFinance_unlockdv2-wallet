@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
 
@@ -7,7 +7,6 @@ import { IDelegationWalletRegistry, DelegationWalletRegistry } from "../src/Dele
 import { Config } from "./utils/Config.sol";
 
 contract DelegationWalletRegistryTest is Config {
-
     DelegationWalletRegistry internal registry;
 
     function setUp() public {
@@ -43,7 +42,9 @@ contract DelegationWalletRegistryTest is Config {
     }
 
     function test_setWallet_owner_invalidDelegationOwnerAddress() public {
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress.selector);
+        vm.expectRevert(
+            DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress.selector
+        );
         registry.setWallet(address(1), address(2), address(0), address(4));
     }
 
@@ -88,7 +89,9 @@ contract DelegationWalletRegistryTest is Config {
         registry.setFactory(karpincho);
         vm.prank(karpincho);
 
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress.selector);
+        vm.expectRevert(
+            DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress.selector
+        );
         registry.setWallet(address(1), address(2), address(0), address(4));
     }
 
@@ -118,5 +121,4 @@ contract DelegationWalletRegistryTest is Config {
         assertEq(walletAt.delegationOwner, address(3));
         assertEq(walletAt.delegationGuard, address(4));
     }
-
 }

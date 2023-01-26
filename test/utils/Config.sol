@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner } from "../../src/DelegationOwner.sol";
-import { DelegationGuard } from "../../src/DelegationGuard.sol";
-import { DelegationWalletFactory } from "../../src/DelegationWalletFactory.sol";
-import { DelegationRecipes } from "../../src/DelegationRecipes.sol";
-import { DelegationWalletRegistry } from "../../src/DelegationWalletRegistry.sol";
-import { TestNft } from "../../src/test/TestNft.sol";
-import { TestNftPlatform } from "../../src/test/TestNftPlatform.sol";
+import { DelegationOwner } from "src/DelegationOwner.sol";
+import { DelegationGuard } from "src/DelegationGuard.sol";
+import { DelegationWalletFactory } from "src/DelegationWalletFactory.sol";
+import { DelegationRecipes } from "src/DelegationRecipes.sol";
+import { DelegationWalletRegistry } from "src/DelegationWalletRegistry.sol";
+import { AllowedControllers } from "src/AllowedControllers.sol";
+import { TestNft } from "src/test/TestNft.sol";
+import { TestPunks } from "src/test/TestPunks.sol";
+import { TestNftPlatform } from "src/test/TestNftPlatform.sol";
 
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
@@ -42,7 +44,9 @@ contract Config is Test {
     address public compatibilityFallbackHandler = 0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4; // 4854164
 
     TestNft public testNft;
+    TestPunks public testPunks;
     TestNftPlatform public testNftPlatform;
+    TestNftPlatform public testPunksPlatform;
 
     address public delegationOwnerImpl;
     address public delegationGuardImpl;
@@ -51,6 +55,7 @@ contract Config is Test {
     DelegationWalletFactory public delegationWalletFactory;
     DelegationRecipes public delegationRecipes;
     DelegationWalletRegistry public delegationWalletRegistry;
+    AllowedControllers public allowedControllers;
 
     address public safeProxy;
     address public delegationOwnerProxy;
@@ -60,15 +65,28 @@ contract Config is Test {
     DelegationOwner public delegationOwner;
     DelegationGuard public delegationGuard;
 
+    address[] public lockControllers;
+    address[] public delegationControllers;
+
     constructor() {
         testNft = new TestNft();
+        testPunks = new TestPunks();
         testNftPlatform = new TestNftPlatform(address(testNft));
+        testPunksPlatform = new TestNftPlatform(address(testPunks));
+
+        lockControllers.push(nftfi);
+        delegationControllers.push(delegationController);
+
+        delegationRecipes = new DelegationRecipes();
+        allowedControllers = new AllowedControllers(lockControllers, delegationControllers);
 
         // DelegationOwner implementation
-        delegationOwnerImpl = address(new DelegationOwner());
+        delegationOwnerImpl = address(
+            new DelegationOwner(address(testPunks), address(delegationRecipes), address(allowedControllers))
+        );
 
         // DelegationGuard implementation
-        delegationGuardImpl = address(new DelegationGuard());
+        delegationGuardImpl = address(new DelegationGuard(address(testPunks)));
 
         // deploy DelegationOwnerBeacon
         ownerBeacon = address(new UpgradeableBeacon(delegationOwnerImpl));
@@ -76,15 +94,14 @@ contract Config is Test {
         // deploy DelegationGuardBeacon
         guardBeacon = address(new UpgradeableBeacon(delegationGuardImpl));
 
-        delegationRecipes = new DelegationRecipes();
         delegationWalletRegistry = new DelegationWalletRegistry();
+
         delegationWalletFactory = new DelegationWalletFactory(
             gnosisSafeProxyFactory,
             gnosisSafeTemplate,
             compatibilityFallbackHandler,
             guardBeacon,
             ownerBeacon,
-            address(delegationRecipes),
             address(delegationWalletRegistry)
         );
 
@@ -102,6 +119,10 @@ contract Config is Test {
         selectors[0] = TestNftPlatform.allowedFunction.selector;
         descriptions[0] = "TestNftPlatform - allowedFunction";
         delegationRecipes.add(address(testNft), contracts, selectors, descriptions);
+
+        contracts[0] = address(testPunksPlatform);
+        descriptions[0] = "TestPunksPlatform - allowedFunction";
+        delegationRecipes.add(address(testPunks), contracts, selectors, descriptions);
     }
 
     function getSignature(bytes memory toSign, uint256 key) public pure returns (bytes memory) {

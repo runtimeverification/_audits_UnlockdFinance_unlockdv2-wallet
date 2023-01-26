@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
 
@@ -29,7 +29,10 @@ contract DelegationGuardTest is Config {
         // testNftPlatform = new TestNftPlatform(address(testNft));
 
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(delegationController, nftfi);
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(
+            delegationController,
+            nftfi
+        );
 
         safe = GnosisSafe(payable(safeProxy));
         delegationOwner = DelegationOwner(delegationOwnerProxy);
@@ -67,44 +70,6 @@ contract DelegationGuardTest is Config {
         assertEq(delegationGuard.getExpiry(address(testNft), safeProxyNftId2), expiry);
     }
 
-    function test_setDelegationExpiries_should_update_lastExpiry_whit_a_greater() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
-
-        assertEq(delegationGuard.lastExpiry(), expiry);
-
-        assets2.push(address(1));
-        assets2.push(address(1));
-        assetIds2.push(1);
-        assetIds2.push(2);
-
-        uint256 expiry2 = expiry + 2;
-
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiries(assets2, assetIds2, expiry2);
-
-        assertEq(delegationGuard.lastExpiry(), expiry2);
-    }
-
-    function test_setDelegationExpiries_should_not_update_lastExpiry_whit_a_lower() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
-
-        assertEq(delegationGuard.lastExpiry(), expiry);
-
-        assets2.push(address(1));
-        assets2.push(address(1));
-        assetIds2.push(1);
-        assetIds2.push(2);
-
-        uint256 expiry2 = expiry - 2;
-
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiries(assets2, assetIds2, expiry2);
-
-        assertEq(delegationGuard.lastExpiry(), expiry);
-    }
-
     //setDelegationExpiry
     function test_setDelegationExpiry_onlyDelegationOwner() public {
         vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
@@ -118,34 +83,6 @@ contract DelegationGuardTest is Config {
         assertEq(delegationGuard.getExpiry(address(testNft), safeProxyNftId), expiry);
     }
 
-    function test_setDelegationExpiry_should_update_lastExpiry_whit_a_greater() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
-
-        assertEq(delegationGuard.lastExpiry(), expiry);
-
-        uint256 expiry2 = expiry + 2;
-
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(1), 1, expiry2);
-
-        assertEq(delegationGuard.lastExpiry(), expiry2);
-    }
-
-    function test_setDelegationExpiry_should_not_update_lastExpiry_whit_a_lower() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
-
-        assertEq(delegationGuard.lastExpiry(), expiry);
-
-        uint256 expiry2 = expiry - 2;
-
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(1), 1, expiry2);
-
-        assertEq(delegationGuard.lastExpiry(), expiry);
-    }
-
     //lockAsset
     function test_lockAsset_onlyDelegationOwner() public {
         vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
@@ -157,19 +94,6 @@ contract DelegationGuardTest is Config {
         delegationGuard.lockAsset(address(testNft), safeProxyNftId);
 
         assertTrue(delegationGuard.isLocked(address(testNft), safeProxyNftId));
-        assertEq(delegationGuard.lockedCount(), 1);
-    }
-
-    function test_lockAsset_locking_twice_should_not_update_count() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.lockAsset(address(testNft), safeProxyNftId);
-
-        assertEq(delegationGuard.lockedCount(), 1);
-
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.lockAsset(address(testNft), safeProxyNftId);
-
-        assertEq(delegationGuard.lockedCount(), 1);
     }
 
     //unlockAsset
@@ -183,36 +107,15 @@ contract DelegationGuardTest is Config {
         delegationGuard.lockAsset(address(testNft), safeProxyNftId);
 
         assertTrue(delegationGuard.isLocked(address(testNft), safeProxyNftId));
-        assertEq(delegationGuard.lockedCount(), 1);
 
         vm.prank(delegationOwnerProxy);
         delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
 
         assertFalse(delegationGuard.isLocked(address(testNft), safeProxyNftId));
-        assertEq(delegationGuard.lockedCount(), 0);
     }
-
-    function test_unlockAsset_unlocking_twice_should_not_update_count() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.lockAsset(address(testNft), safeProxyNftId);
-
-        assertTrue(delegationGuard.isLocked(address(testNft), safeProxyNftId));
-        assertEq(delegationGuard.lockedCount(), 1);
-
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
-
-        assertEq(delegationGuard.lockedCount(), 0);
-
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
-
-        assertEq(delegationGuard.lockedCount(), 0);
-    }
-
 
     // _checkLocked
-    function test_owner_can_no_transfer_out_delegated_asset() public {
+    function test_owner_can_not_transfer_out_delegated_asset() public {
         vm.prank(delegationOwnerProxy);
         delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
 
@@ -254,6 +157,40 @@ contract DelegationGuardTest is Config {
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
         assertEq(testNft.ownerOf(1), kakaroto);
+    }
+
+    function test_owner_can_not_approve_delegated_asset() public {
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+
+        vm.warp(block.timestamp + 1);
+
+        bytes memory payload = abi.encodeWithSelector(IERC721.approve.selector, kakaroto, safeProxyNftId);
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+
+        assertEq(testNft.getApproved(safeProxyNftId), address(0));
+    }
+
+    function test_owner_can_approve_delegated_asset_after_expiry() public {
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+
+        vm.warp(block.timestamp + 10 days + 1);
+
+        bytes memory payload = abi.encodeWithSelector(IERC721.approve.selector, kakaroto, safeProxyNftId);
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+
+        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+
+        assertEq(testNft.getApproved(safeProxyNftId), kakaroto);
     }
 
     function test_owner_can_no_transfer_out_locked_asset() public {
@@ -303,6 +240,43 @@ contract DelegationGuardTest is Config {
         assertEq(testNft.ownerOf(1), kakaroto);
     }
 
+    function test_owner_can_not_approve_locked_asset() public {
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.lockAsset(address(testNft), safeProxyNftId);
+
+        bytes memory payload = abi.encodeWithSelector(IERC721.approve.selector, kakaroto, safeProxyNftId);
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+
+        assertEq(testNft.getApproved(safeProxyNftId), address(0));
+    }
+
+    function test_owner_can_approve_unlocked_asset() public {
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.lockAsset(address(testNft), safeProxyNftId);
+
+        bytes memory payload = abi.encodeWithSelector(IERC721.approve.selector, kakaroto, safeProxyNftId);
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+
+        assertEq(testNft.getApproved(safeProxyNftId), address(address(0)));
+
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
+
+        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+
+        assertEq(testNft.getApproved(safeProxyNftId), kakaroto);
+    }
+
     // _checkConfiguration - guard
     function test_owner_can_no_change_guard_while_delegating() public {
         vm.prank(delegationOwnerProxy);
@@ -329,7 +303,7 @@ contract DelegationGuardTest is Config {
         );
     }
 
-    function test_owner_can_change_guard_after_delegation_expires() public {
+    function test_owner_can_no_change_guard_after_delegation_expires() public {
         vm.prank(delegationOwnerProxy);
         delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
 
@@ -339,6 +313,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -376,7 +351,7 @@ contract DelegationGuardTest is Config {
         );
     }
 
-    function test_nft_owner_can_change_guard_after_an_asset_is_unlocked() public {
+    function test_nft_owner_can_not_change_guard_after_an_asset_is_unlocked() public {
         vm.prank(delegationOwnerProxy);
         delegationGuard.lockAsset(address(testNft), safeProxyNftId);
 
@@ -402,6 +377,7 @@ contract DelegationGuardTest is Config {
         delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
 
         vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -416,7 +392,107 @@ contract DelegationGuardTest is Config {
         );
     }
 
-    // TODO - test ownership changes not allowed with guard
+    // _checkConfiguration - addOwnerWithThreshold
+    function test_nft_owner_can_not_addOwnerWithThreshold_when_guard_is_configured() public {
+        bytes memory payload = abi.encodeWithSelector(OwnerManager.addOwnerWithThreshold.selector, vegeta, 2);
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
-    // TODO - test approveForAll not allowed with guard
+        vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
+        safe.execTransaction(
+            address(safeProxy),
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            tSig
+        );
+    }
+
+    // _checkConfiguration - removeOwner
+    function test_nft_owner_can_not_removeOwner_when_guard_is_configured() public {
+        bytes memory payload = abi.encodeWithSelector(
+            OwnerManager.removeOwner.selector,
+            kakaroto,
+            address(delegationOwner),
+            0
+        );
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
+        safe.execTransaction(
+            address(safeProxy),
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            tSig
+        );
+    }
+
+    // _checkConfiguration - swapOwner
+    function test_nft_owner_can_not_swapOwner_when_guard_is_configured() public {
+        bytes memory payload = abi.encodeWithSelector(
+            OwnerManager.swapOwner.selector,
+            kakaroto,
+            address(delegationOwner),
+            vegeta
+        );
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
+        safe.execTransaction(
+            address(safeProxy),
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            tSig
+        );
+    }
+
+    // _checkConfiguration - changeThreshold
+    function test_nft_owner_can_not_changeThreshold_when_guard_is_configured() public {
+        bytes memory payload = abi.encodeWithSelector(OwnerManager.changeThreshold.selector, 2);
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
+        safe.execTransaction(
+            address(safeProxy),
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            tSig
+        );
+    }
+
+    // _checkApproveForAll
+    function test_nft_owner_can_not_call_approveForAll__when_guard_is_configured() public {
+        bytes memory payload = abi.encodeWithSelector(IERC721.setApprovalForAll.selector, kakaroto, true);
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkApproveForAll_noApprovalForAll.selector);
+        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+    }
 }

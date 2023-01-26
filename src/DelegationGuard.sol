@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
-// TODO - use (but it is not in npm package but it is on Foundry lib)
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { IERC165 } from "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
 import { Guard } from "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
@@ -9,7 +8,8 @@ import { OwnerManager, GuardManager } from "@gnosis.pm/safe-contracts/contracts/
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-import {DelegationOwner} from "./DelegationOwner.sol";
+import { DelegationOwner } from "./DelegationOwner.sol";
+import { ICryptoPunks } from "./interfaces/ICryptoPunks.sol";
 
 /**
  * @title DelegationGuard
@@ -19,13 +19,15 @@ import {DelegationOwner} from "./DelegationOwner.sol";
  * - Prevents the approval of delegated or locked assets.
  * - Prevents all approveForAll.
  * - Prevents change in the configuration of the DelegationWallet.
- * - Prevents the remotion a this contract as the Guard of the DelegationWallet on some scenarios.
+ * - Prevents the remotion a this contract as the Guard of the DelegationWallet.
  */
 contract DelegationGuard is Guard, Initializable {
     bytes4 internal constant ERC721_SAFE_TRANSFER_FROM =
         bytes4(keccak256(bytes("safeTransferFrom(address,address,uint256)")));
     bytes4 internal constant ERC721_SAFE_TRANSFER_FROM_DATA =
         bytes4(keccak256(bytes("safeTransferFrom(address,address,uint256,bytes)")));
+
+    address public immutable cryptoPunks;
 
     address internal delegationOwner;
 
@@ -36,14 +38,9 @@ contract DelegationGuard is Guard, Initializable {
 
     // keccak256(address, nft id) => true/false
     mapping(bytes32 => bool) internal lockedAssets; // this locks assets until unlock
-    uint256 public lockedCount;
-
 
     // keccak256(address, nft id) => delegation expiry
     mapping(bytes32 => uint256) internal delegatedAssets; // this locks assets base on a date
-
-    // this saves the latest expiry in order to know if there is an locked by date asset on any given time
-    uint256 public lastExpiry;
 
     // ========== Custom Errors ===========
     error DelegationGuard__onlyDelegationOwner();
@@ -54,12 +51,16 @@ contract DelegationGuard is Guard, Initializable {
     error DelegationGuard__checkConfiguration_ownershipChangesNotAllowed();
     error DelegationGuard__checkConfiguration_guardChangeNotAllowed();
 
+    /**
+     * @notice This modifier indicates that only the DelegationOwner contract can execute a given function.
+     */
     modifier onlyDelegationOwner() {
         if (delegationOwner != msg.sender) revert DelegationGuard__onlyDelegationOwner();
         _;
     }
 
-    constructor() {
+    constructor(address _cryptoPunks) {
+        cryptoPunks = _cryptoPunks;
         _disableInitializers();
     }
 
@@ -74,7 +75,9 @@ contract DelegationGuard is Guard, Initializable {
         // E.g. The expected check method might change and then the Safe would be locked.
     }
 
-    // do not allow the owner to do stuff on locked assets
+    /**
+     * @notice This function is called from Safe.execTransaction to perform checks before executing the transaction.
+     */
     function checkTransaction(
         address _to,
         uint256,
@@ -88,10 +91,10 @@ contract DelegationGuard is Guard, Initializable {
         bytes memory,
         address _msgSender
     ) external view override {
-        // transactions coming from DelegationOwner are already blocked/allowed there
-        // delegatee calls execTransaction on DelegationOwner, it checks allowance then calls execTransaction from Safe
+        // Transactions coming from DelegationOwner are already blocked/allowed there.
+        // The delegatee calls execTransaction on DelegationOwner, it checks allowance then calls execTransaction
+        // from Safe.
 
-        // is one of the real owners
         if (_msgSender != delegationOwner && checkAsset[_to]) {
             _checkLocked(_to, _data);
         }
@@ -102,92 +105,136 @@ contract DelegationGuard is Guard, Initializable {
         _checkConfiguration(_to, _data);
     }
 
+    /**
+     * @notice This function is called from Safe.execTransaction to perform checks after executing the transaction.
+     */
     function checkAfterExecution(bytes32 txHash, bool success) external view override {}
 
+    /**
+     * @notice Sets the delegation expiry for a group of assets.
+     * @param _assets - The assets addresses.
+     * @param _ids - The assets ids.
+     * @param _expiry - The delegation expiry.
+     */
     function setDelegationExpiries(
         address[] calldata _assets,
-        uint256[] calldata _assetIds,
+        uint256[] calldata _ids,
         uint256 _expiry
     ) external onlyDelegationOwner {
-        for (uint256 j; j < _assets.length; ) {
+        uint256 length = _assets.length;
+        for (uint256 j; j < length; ) {
             checkAsset[_assets[j]] = true;
-            delegatedAssets[_delegationId(_assets[j], _assetIds[j])] = _expiry;
+            delegatedAssets[_assetId(_assets[j], _ids[j])] = _expiry;
             unchecked {
                 ++j;
             }
         }
-
-        // This function could be called, in order to end a delegation, using the current timestamp or 0 as
-        // expiry. In that scenario it is not possible to update lastExpiry, since it is used in _checkConfiguration
-        // function as a flag to check if there is any delegation in progress, it could end not allowing to change
-        // the guard until lastExpiry with no real delegation in progress.
-        if (_expiry > lastExpiry) {
-            lastExpiry = _expiry;
-        }
     }
 
-    function setDelegationExpiry(
-        address _asset,
-        uint256 _assetId,
-        uint256 _expiry
-    ) external onlyDelegationOwner {
+    /**
+     * @notice Sets the delegation expiry for an assets.
+     * @param _asset - The asset address.
+     * @param _id - The asset id.
+     * @param _expiry - The delegation expiry.
+     */
+    function setDelegationExpiry(address _asset, uint256 _id, uint256 _expiry) external onlyDelegationOwner {
         checkAsset[_asset] = true;
-        delegatedAssets[_delegationId(_asset, _assetId)] = _expiry;
-
-        // This function could be called, in order to end a delegation, using the current timestamp or 0 as
-        // expiry. In that scenario it is not possible to update lastExpiry, since it is used in _checkConfiguration
-        // function as a flag to check if there is any delegation in progress, it could end not allowing to change
-        // the guard until lastExpiry with no real delegation in progress.
-        if (_expiry > lastExpiry) {
-            lastExpiry = _expiry;
-        }
+        delegatedAssets[_assetId(_asset, _id)] = _expiry;
     }
 
+    /**
+     * @notice Sets an asset as locked.
+     * @param _asset - The asset address.
+     * @param _id - The asset id.
+     */
     function lockAsset(address _asset, uint256 _id) external onlyDelegationOwner {
         if (!_isLocked(_asset, _id)) {
             checkAsset[_asset] = true;
-            lockedCount += 1;
-            lockedAssets[keccak256(abi.encodePacked(_asset, _id))] = true;
+            lockedAssets[_assetId(_asset, _id)] = true;
         }
     }
 
+    /**
+     * @notice Sets an asset as unlocked.
+     * @param _asset - The asset address.
+     * @param _id - The asset id.
+     */
     function unlockAsset(address _asset, uint256 _id) external onlyDelegationOwner {
         if (_isLocked(_asset, _id)) {
-            lockedCount -= 1;
-            lockedAssets[keccak256(abi.encodePacked(_asset, _id))] = false;
+            lockedAssets[_assetId(_asset, _id)] = false;
         }
     }
 
-    function isLocked(address _asset, uint256 _assetId) external view returns (bool) {
-        return _isLocked(_asset, _assetId);
+    /**
+     * @notice Returns if an asset is locked.
+     * @param _asset - The asset addresses.
+     * @param _id - The asset id.
+     */
+    function isLocked(address _asset, uint256 _id) external view returns (bool) {
+        return _isLocked(_asset, _id);
     }
 
-    function getExpiry(address _asset, uint256 _assetId) external view returns (uint256) {
-        return delegatedAssets[_delegationId(_asset, _assetId)];
+    /**
+     * @notice Returns asset delegation expiry.
+     * @param _asset - The asset addresses.
+     * @param _id - The asset id.
+     */
+    function getExpiry(address _asset, uint256 _id) external view returns (uint256) {
+        return delegatedAssets[_assetId(_asset, _id)];
     }
 
+    /**
+     * @notice This function prevents the execution of some functions when the destination contract is a locked or
+     * delegated asset.
+     * @param _to - Destination address of Safe transaction.
+     * @param _data - Data payload of Safe transaction.
+     */
     function _checkLocked(address _to, bytes calldata _data) internal view {
         bytes4 selector = _getSelector(_data);
-        // move this check to an adaptor per asset address?
-        if (_isTransfer(selector)) {
-            (, , uint256 assetId) = abi.decode(_data[4:], (address, address, uint256));
-            if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
-                revert DelegationGuard__checkLocked_noTransfer();
-        }
-
-        if (selector == IERC721.approve.selector) {
-            (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
-            if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
-                revert DelegationGuard__checkLocked_noApproval();
+        if (_to == cryptoPunks) {
+            if (selector == ICryptoPunks.transferPunk.selector) {
+                (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
+                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                    revert DelegationGuard__checkLocked_noTransfer();
+            } else if (selector == ICryptoPunks.offerPunkForSale.selector) {
+                (uint256 assetId, ) = abi.decode(_data[4:], (uint256, uint256));
+                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                    revert DelegationGuard__checkLocked_noApproval();
+            } else if (selector == ICryptoPunks.offerPunkForSaleToAddress.selector) {
+                (uint256 assetId, , ) = abi.decode(_data[4:], (uint256, uint256, address));
+                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                    revert DelegationGuard__checkLocked_noApproval();
+            }
+        } else {
+            // move this check to an adaptor per asset address?
+            if (_isTransfer(selector)) {
+                (, , uint256 assetId) = abi.decode(_data[4:], (address, address, uint256));
+                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                    revert DelegationGuard__checkLocked_noTransfer();
+            } else if (selector == IERC721.approve.selector) {
+                (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
+                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                    revert DelegationGuard__checkLocked_noApproval();
+            }
         }
     }
 
+    /**
+     * @notice This function prevents the execution of the IERC721 setApprovalForAll function.
+     * @param _data - Data payload of Safe transaction.
+     */
     function _checkApproveForAll(bytes calldata _data) internal pure {
         bytes4 selector = _getSelector(_data);
+
         if (selector == IERC721.setApprovalForAll.selector)
             revert DelegationGuard__checkApproveForAll_noApprovalForAll();
     }
 
+    /**
+     * @notice This function prevents changes in the configuration of the Safe.
+     * @param _to - Destination address of Safe transaction.
+     * @param _data - Data payload of Safe transaction.
+     */
     function _checkConfiguration(address _to, bytes calldata _data) internal view {
         bytes4 selector = _getSelector(_data);
 
@@ -200,32 +247,53 @@ contract DelegationGuard is Guard, Initializable {
                 selector == OwnerManager.changeThreshold.selector
             ) revert DelegationGuard__checkConfiguration_ownershipChangesNotAllowed();
 
-            // Guard change not allowed while delegating or locked asset
-            if (
-                (lockedCount > 0 || block.timestamp < lastExpiry) &&
-                selector == GuardManager.setGuard.selector
-            ) revert DelegationGuard__checkConfiguration_guardChangeNotAllowed();
+            // Guard change not allowed
+            if (selector == GuardManager.setGuard.selector)
+                revert DelegationGuard__checkConfiguration_guardChangeNotAllowed();
         }
     }
 
-    function _isDelegating(address _asset, uint256 _assetId) internal view returns (bool) {
-        return (block.timestamp <= delegatedAssets[_delegationId(_asset, _assetId)]);
+    /**
+     * @notice Checks if an asset is delegated.
+     * @param _asset - The asset addresses.
+     * @param _id - The asset id.
+     */
+    function _isDelegating(address _asset, uint256 _id) internal view returns (bool) {
+        return (block.timestamp <= delegatedAssets[_assetId(_asset, _id)]);
     }
 
-    function _isLocked(address _asset, uint256 _assetId) internal view returns (bool) {
-        return lockedAssets[keccak256(abi.encodePacked(_asset, _assetId))];
+    /**
+     * @notice Checks if an asset is locked.
+     * @param _asset - The asset addresses.
+     * @param _id - The asset id.
+     */
+    function _isLocked(address _asset, uint256 _id) internal view returns (bool) {
+        return lockedAssets[keccak256(abi.encodePacked(_asset, _id))];
     }
 
-    function _isTransfer(bytes4 selector) internal pure returns (bool) {
-        return (selector == IERC721.transferFrom.selector ||
-            selector == ERC721_SAFE_TRANSFER_FROM ||
-            selector == ERC721_SAFE_TRANSFER_FROM_DATA);
+    /**
+     * @notice Checks if `_selector` is one of the ERC721 possible transfers.
+     * @param _selector - Function selector.
+     */
+    function _isTransfer(bytes4 _selector) internal pure returns (bool) {
+        return (_selector == IERC721.transferFrom.selector ||
+            _selector == ERC721_SAFE_TRANSFER_FROM ||
+            _selector == ERC721_SAFE_TRANSFER_FROM_DATA);
     }
 
-    function _delegationId(address _asset, uint256 _assetId) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_asset, _assetId));
+    /**
+     * @notice Returns internal identification of an asset.
+     * @param _asset - The asset addresses.
+     * @param _id - The asset id.
+     */
+    function _assetId(address _asset, uint256 _id) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_asset, _id));
     }
 
+    /**
+     * @notice Returns selector of a data payload.
+     * @param _data - Data payload of Safe transaction
+     */
     function _getSelector(bytes memory _data) internal pure returns (bytes4 selector) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -233,7 +301,9 @@ contract DelegationGuard is Guard, Initializable {
         }
     }
 
-    function supportsInterface(bytes4 _interfaceId)
+    function supportsInterface(
+        bytes4 _interfaceId
+    )
         external
         view
         virtual

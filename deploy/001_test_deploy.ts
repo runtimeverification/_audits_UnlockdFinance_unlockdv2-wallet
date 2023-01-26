@@ -21,8 +21,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
-  // deploy rentals owner
   const testNft = await deploy("TestNft", {
+    from: deployer.address,
+    args: [],
+    log: true,
+    autoMine: true,
+  });
+
+  const testPunks = await deploy("TestPunks", {
     from: deployer.address,
     args: [],
     log: true,
@@ -36,10 +42,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
+  const allowedControllers = await deploy("AllowedControllers", {
+    from: deployer.address,
+    args: [[], []],
+    log: true,
+    autoMine: true,
+  });
+
+  const delegationRecipes = await deploy("DelegationRecipes", {
+    from: deployer.address,
+    args: [],
+    log: true,
+    autoMine: true,
+  });
+
   const safeOwnerImpl = await deploy("DelegationOwnerImplementation", {
     from: deployer.address,
     contract: "DelegationOwner",
-    args: [],
+    args: [testPunks.address, delegationRecipes.address, allowedControllers.address],
     log: true,
     autoMine: true,
   });
@@ -47,7 +67,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const safeGuardImpl = await deploy("DelegationGuardImplementation", {
     from: deployer.address,
     contract: "DelegationGuard",
-    args: [],
+    args: [testPunks.address],
     log: true,
     autoMine: true,
   });
@@ -68,21 +88,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  const delegationRecipes = await deploy("DelegationRecipes", {
-    from: deployer.address,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
-
   const delegationWalletRegistry = await deploy("DelegationWalletRegistry", {
-    from: deployer.address,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
-
-  const testLoancontroller = await deploy("TestLoanController", {
     from: deployer.address,
     args: [],
     log: true,
@@ -97,8 +103,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       process.env.COMPATIBILITY_FALLBACK_HANDLER,
       safeGuardBeacon.address,
       safeOwnerBeacon.address,
-      delegationRecipes.address,
-      delegationWalletRegistry.address
+      delegationWalletRegistry.address,
     ],
     log: true,
     autoMine: true,
@@ -121,7 +126,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )) as DelegationRecipes;
 
   console.log("Configuring DelegationRecipes...");
-  await (await delegationRecipesContract.add(testNft.address, [testNftPlatform.address], ["0x4816cbdf"], ["TestNftPlatform - allowedFunction"])).wait();
+  await (
+    await delegationRecipesContract.add(
+      testNft.address,
+      [testNftPlatform.address],
+      ["0x4816cbdf"],
+      ["TestNftPlatform - allowedFunction"],
+    )
+  ).wait();
   console.log("done...");
 };
 

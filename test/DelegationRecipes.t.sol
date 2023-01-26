@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
 
@@ -8,16 +8,36 @@ import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, Con
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 
-contract DelegationRecipes is Config {
+contract DelegationRecipesTest is Config {
     function setUp() public {
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(address(this), nftfi);
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(
+            delegationController,
+            nftfi
+        );
         safe = GnosisSafe(payable(safeProxy));
     }
 
     function test_add_should_work() public {
-        assertTrue(delegationRecipes.isAllowedFunction(address(testNft), address(testNftPlatform), TestNftPlatform.allowedFunction.selector));
-        assertEq(delegationRecipes.functionDescriptions(keccak256(abi.encodePacked(address(testNft), address(testNftPlatform), TestNftPlatform.allowedFunction.selector))), "TestNftPlatform - allowedFunction");
+        assertTrue(
+            delegationRecipes.isAllowedFunction(
+                address(testNft),
+                address(testNftPlatform),
+                TestNftPlatform.allowedFunction.selector
+            )
+        );
+        assertEq(
+            delegationRecipes.functionDescriptions(
+                keccak256(
+                    abi.encodePacked(
+                        address(testNft),
+                        address(testNftPlatform),
+                        TestNftPlatform.allowedFunction.selector
+                    )
+                )
+            ),
+            "TestNftPlatform - allowedFunction"
+        );
     }
 
     function test_remove_should_work() public {
@@ -27,7 +47,24 @@ contract DelegationRecipes is Config {
         selectors[0] = TestNftPlatform.allowedFunction.selector;
         delegationRecipes.remove(address(testNft), contracts, selectors);
 
-        assertFalse(delegationRecipes.isAllowedFunction(address(testNft), address(testNftPlatform), TestNftPlatform.allowedFunction.selector));
-        assertEq(delegationRecipes.functionDescriptions(keccak256(abi.encodePacked(address(testNft), address(testNftPlatform), TestNftPlatform.allowedFunction.selector))), "");
+        assertFalse(
+            delegationRecipes.isAllowedFunction(
+                address(testNft),
+                address(testNftPlatform),
+                TestNftPlatform.allowedFunction.selector
+            )
+        );
+        assertEq(
+            delegationRecipes.functionDescriptions(
+                keccak256(
+                    abi.encodePacked(
+                        address(testNft),
+                        address(testNftPlatform),
+                        TestNftPlatform.allowedFunction.selector
+                    )
+                )
+            ),
+            ""
+        );
     }
 }

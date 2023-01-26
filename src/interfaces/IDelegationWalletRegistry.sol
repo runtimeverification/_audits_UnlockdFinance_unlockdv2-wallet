@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 interface IDelegationWalletRegistry {
     struct Wallet {
@@ -10,8 +10,12 @@ interface IDelegationWalletRegistry {
     }
 
     function setFactory(address _delegationWalletFactory) external;
+
     function setWallet(address _wallet, address _owner, address _delegationOwner, address _delegationGuard) external;
-    function getWallet(address _wallet) external view returns(Wallet memory);
-    function getOwnerWalletAddresses(address _owner) external view returns(address[] memory);
-    function getOwnerWalletAt(address _owner, uint256 _index) external view returns(Wallet memory);
+
+    function getWallet(address _wallet) external view returns (Wallet memory);
+
+    function getOwnerWalletAddresses(address _owner) external view returns (address[] memory);
+
+    function getOwnerWalletAt(address _owner, uint256 _index) external view returns (Wallet memory);
 }

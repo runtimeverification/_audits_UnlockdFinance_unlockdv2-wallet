@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-
 
 /**
  * @title DelegationRecipes
@@ -21,21 +20,12 @@ contract DelegationRecipes is Ownable {
     mapping(bytes32 => string) public functionDescriptions;
 
     // ========== Events ===========
-    event AddRecipe(
-        address indexed collection,
-        address[] contracts,
-        bytes4[] selectors,
-        string[] description
-    );
+    event AddRecipe(address indexed collection, address[] contracts, bytes4[] selectors, string[] description);
 
-    event RemoveRecipe(
-        address indexed collection,
-        address[] contracts,
-        bytes4[] selectors
-    );
+    event RemoveRecipe(address indexed collection, address[] contracts, bytes4[] selectors);
 
     /**
-     * @notice Adds a group of allowed functions to a asset collection.
+     * @notice Adds a group of allowed functions to a collection.
      * @param _collection - The asset collection address.
      * @param _contracts - The target contract addresses.
      * @param _selectors - The allowed function selectors.
@@ -49,7 +39,8 @@ contract DelegationRecipes is Ownable {
         // TODO - validate arity
 
         bytes32 functionId;
-        for (uint256 i; i < _contracts.length; ) {
+        uint256 length = _contracts.length;
+        for (uint256 i; i < length; ) {
             functionId = keccak256(abi.encodePacked(_collection, _contracts[i], _selectors[i]));
             functionByCollection[_collection].add(functionId);
             functionDescriptions[functionId] = _descriptions[i];
@@ -63,7 +54,7 @@ contract DelegationRecipes is Ownable {
     }
 
     /**
-     * @notice Removes a group of allowed functions to a collection.
+     * @notice Removes a group of allowed functions from a collection.
      * @param _collection - The owner's address.
      * @param _contracts - The owner's address.
      * @param _selectors - The owner's address.
@@ -76,7 +67,8 @@ contract DelegationRecipes is Ownable {
         // TODO - validate arity
 
         bytes32 functionId;
-        for (uint256 i; i < _contracts.length; ) {
+        uint256 length = _contracts.length;
+        for (uint256 i; i < length; ) {
             functionId = keccak256(abi.encodePacked(_collection, _contracts[i], _selectors[i]));
             functionByCollection[_collection].remove(functionId);
             delete functionDescriptions[functionId];
@@ -95,11 +87,7 @@ contract DelegationRecipes is Ownable {
      * @param _contract - The owner's address.
      * @param _selector - The owner's address.
      */
-    function isAllowedFunction(
-        address _collection,
-        address _contract,
-        bytes4 _selector
-    ) external view returns (bool) {
+    function isAllowedFunction(address _collection, address _contract, bytes4 _selector) external view returns (bool) {
         bytes32 functionId = keccak256(abi.encodePacked(_collection, _contract, _selector));
         return functionByCollection[_collection].contains(functionId);
     }
