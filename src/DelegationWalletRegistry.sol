@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import { IDelegationWalletRegistry } from "./interfaces/IDelegationWalletRegistry.sol";
 
@@ -98,10 +98,10 @@ contract DelegationWalletRegistry is IDelegationWalletRegistry, Ownable {
     /**
      * @notice Returns the entire set of Wallets for a given owner.
      * @param _owner - The address of the DelegationWallet's owner component.
-     * @dev WARNING: This operation will copy the entire storage to memory, which can be quite expensive. This is designed
-     * to mostly be used by view accessors that are queried without any gas fees. Developers should keep in mind that
-     * this function has an unbounded cost, and using it as part of a state-changing function may render the function
-     * uncallable if the set grows to a point where copying to memory consumes too much gas to fit in a block.
+     * @dev WARNING: This operation will copy the entire storage to memory, which can be quite expensive. This is
+     * designed to mostly be used by view accessors that are queried without any gas fees. Developers should keep in
+     * mind that this function has an unbounded cost, and using it as part of a state-changing function may render the
+     * function uncallable if the set grows to a point where copying to memory consumes too much gas to fit in a block.
      */
     function getOwnerWalletAddresses(address _owner) external view returns (address[] memory) {
         return walletsByOwner[_owner].values();

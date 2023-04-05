@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
@@ -16,8 +16,7 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 contract DelegationOwnerPunksTest is Config {
     event ExecutionSuccess(bytes32 txHash, uint256 payment);
-    uint256 private safeProxyPunkId;
-    uint256 private kakarotoPunkId;
+    uint256 private constant kakarotoPunkId = 410;
     address[] assets;
     uint256[] assetIds;
 
@@ -34,11 +33,13 @@ contract DelegationOwnerPunksTest is Config {
         delegationOwner = DelegationOwner(delegationOwnerProxy);
         delegationGuard = DelegationGuard(delegationGuardProxy);
 
-        safeProxyPunkId = 1;
-        testPunks.mint(address(safeProxy), safeProxyPunkId);
+        vm.prank(REAL_OWNER);
+        testPunks.transferPunk(address(safeProxy), safeProxyPunkId);
+        assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(safeProxy));
 
-        kakarotoPunkId = 2;
-        testPunks.mint(kakaroto, kakarotoPunkId);
+        vm.prank(0x717a578E4A157Ea52EE989be75f15957F294d1A9);
+        testPunks.transferPunk(kakaroto, kakarotoPunkId);
+        assertEq(testPunks.punkIndexToAddress(kakarotoPunkId), kakaroto);
 
         assets.push(address(testPunks));
         assetIds.push(safeProxyPunkId);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
@@ -12,6 +12,8 @@ import { AllowedControllers } from "src/AllowedControllers.sol";
 import { TestNft } from "src/test/TestNft.sol";
 import { TestPunks } from "src/test/TestPunks.sol";
 import { TestNftPlatform } from "src/test/TestNftPlatform.sol";
+
+import { ICryptoPunks } from "../../src/interfaces/ICryptoPunks.sol";
 
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
@@ -44,7 +46,7 @@ contract Config is Test {
     address public compatibilityFallbackHandler = 0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4; // 4854164
 
     TestNft public testNft;
-    TestPunks public testPunks;
+    ICryptoPunks public testPunks;
     TestNftPlatform public testNftPlatform;
     TestNftPlatform public testPunksPlatform;
 
@@ -68,9 +70,15 @@ contract Config is Test {
     address[] public lockControllers;
     address[] public delegationControllers;
 
+    address public constant REAL_OWNER = 0x052564eB0fd8b340803dF55dEf89c25C432f43f4;
+    address public constant REAL_OWNER2 = 0x4d8E16A70F38414F33E8578913Eef6A0e4a633b5;
+
+    uint256 public constant safeProxyPunkId = 407;
+    uint256 public constant safeProxyPunkId2 = 409;
+
     constructor() {
         testNft = new TestNft();
-        testPunks = new TestPunks();
+        testPunks = ICryptoPunks(0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB);
         testNftPlatform = new TestNftPlatform(address(testNft));
         testPunksPlatform = new TestNftPlatform(address(testPunks));
 

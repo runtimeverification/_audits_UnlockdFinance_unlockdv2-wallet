@@ -37,6 +37,12 @@ Claim date = loan expiry
 
 **R#1 and R#2** ensure that a delegation will always end before or at the lock claim date.
 
+## Audit Reports
+
+## Halborn
+
+* ![6 March 2023](/docs/audits/NFTfi_Delegation_Wallet_Smart_Contract_Security_Audit_Report_Halborn_Final.pdf)
+
 ## Installation
 
 _Having issues? See the [troubleshooting section](https://github.com/foundry-rs/foundry/blob/master/README.md#troubleshooting-installation)_.

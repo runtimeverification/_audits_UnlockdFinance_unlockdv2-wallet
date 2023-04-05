@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -24,6 +24,10 @@ contract DelegationRecipes is Ownable {
 
     event RemoveRecipe(address indexed collection, address[] contracts, bytes4[] selectors);
 
+    // ========== Events ===========
+    error DelegationRecipes__add_arityMismatch();
+    error DelegationRecipes__remove_arityMismatch();
+
     /**
      * @notice Adds a group of allowed functions to a collection.
      * @param _collection - The asset collection address.
@@ -36,7 +40,8 @@ contract DelegationRecipes is Ownable {
         bytes4[] calldata _selectors,
         string[] calldata _descriptions
     ) external onlyOwner {
-        // TODO - validate arity
+        if (_contracts.length != _selectors.length || _selectors.length != _descriptions.length)
+            revert DelegationRecipes__add_arityMismatch();
 
         bytes32 functionId;
         uint256 length = _contracts.length;
@@ -64,7 +69,7 @@ contract DelegationRecipes is Ownable {
         address[] calldata _contracts,
         bytes4[] calldata _selectors
     ) external onlyOwner {
-        // TODO - validate arity
+        if (_contracts.length != _selectors.length) revert DelegationRecipes__remove_arityMismatch();
 
         bytes32 functionId;
         uint256 length = _contracts.length;

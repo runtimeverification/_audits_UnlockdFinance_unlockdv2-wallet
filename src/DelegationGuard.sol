@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { IERC165 } from "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
@@ -10,6 +10,7 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 
 import { DelegationOwner } from "./DelegationOwner.sol";
 import { ICryptoPunks } from "./interfaces/ICryptoPunks.sol";
+import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
 
 /**
  * @title DelegationGuard
@@ -45,11 +46,14 @@ contract DelegationGuard is Guard, Initializable {
     // ========== Custom Errors ===========
     error DelegationGuard__onlyDelegationOwner();
     error DelegationGuard__initialize_invalidDelegationOwner();
+    error DelegationGuard__checkTransaction_noDelegateCall();
     error DelegationGuard__checkLocked_noTransfer();
     error DelegationGuard__checkLocked_noApproval();
     error DelegationGuard__checkApproveForAll_noApprovalForAll();
     error DelegationGuard__checkConfiguration_ownershipChangesNotAllowed();
     error DelegationGuard__checkConfiguration_guardChangeNotAllowed();
+    error DelegationGuard__checkConfiguration_enableModuleNotAllowed();
+    error DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed();
 
     /**
      * @notice This modifier indicates that only the DelegationOwner contract can execute a given function.
@@ -82,7 +86,7 @@ contract DelegationGuard is Guard, Initializable {
         address _to,
         uint256,
         bytes calldata _data,
-        Enum.Operation,
+        Enum.Operation operation,
         uint256,
         uint256,
         uint256,
@@ -91,10 +95,13 @@ contract DelegationGuard is Guard, Initializable {
         bytes memory,
         address _msgSender
     ) external view override {
+        // malicious owner can execute transactions to smart contracts by using Enum.Operation.DelegateCall in order to
+        // manipulate the Safe's internal storage and even transfer locked NFTs out of the delegation wallet
+        if (operation == Enum.Operation.DelegateCall) revert DelegationGuard__checkTransaction_noDelegateCall();
+
         // Transactions coming from DelegationOwner are already blocked/allowed there.
         // The delegatee calls execTransaction on DelegationOwner, it checks allowance then calls execTransaction
         // from Safe.
-
         if (_msgSender != delegationOwner && checkAsset[_to]) {
             _checkLocked(_to, _data);
         }
@@ -204,6 +211,10 @@ contract DelegationGuard is Guard, Initializable {
                 (uint256 assetId, , ) = abi.decode(_data[4:], (uint256, uint256, address));
                 if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
                     revert DelegationGuard__checkLocked_noApproval();
+            } else if (selector == ICryptoPunks.acceptBidForPunk.selector) {
+                (uint256 assetId, ) = abi.decode(_data[4:], (uint256, uint256));
+                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                    revert DelegationGuard__checkLocked_noTransfer();
             }
         } else {
             // move this check to an adaptor per asset address?
@@ -250,6 +261,14 @@ contract DelegationGuard is Guard, Initializable {
             // Guard change not allowed
             if (selector == GuardManager.setGuard.selector)
                 revert DelegationGuard__checkConfiguration_guardChangeNotAllowed();
+
+            // Adding modules is not allowed
+            if (selector == IGnosisSafe.enableModule.selector)
+                revert DelegationGuard__checkConfiguration_enableModuleNotAllowed();
+
+            // Changing FallbackHandler is not allowed
+            if (selector == IGnosisSafe.setFallbackHandler.selector)
+                revert DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed();
         }
     }
 
@@ -294,11 +313,8 @@ contract DelegationGuard is Guard, Initializable {
      * @notice Returns selector of a data payload.
      * @param _data - Data payload of Safe transaction
      */
-    function _getSelector(bytes memory _data) internal pure returns (bytes4 selector) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            selector := mload(add(_data, 32))
-        }
+    function _getSelector(bytes calldata _data) internal pure returns (bytes4) {
+        return bytes4(_data[:4]);
     }
 
     function supportsInterface(

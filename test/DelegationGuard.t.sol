@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
@@ -115,6 +115,46 @@ contract DelegationGuardTest is Config {
     }
 
     // _checkLocked
+    function test_owner_can_not_execute_a_delegatecall_operation() public {
+        bytes memory storageAtBefore = safe.getStorageAt(uint256(GUARD_STORAGE_SLOT), 1);
+        address configuredGuardBefore = abi.decode(storageAtBefore, (address));
+
+        vm.startPrank(kakaroto);
+
+        GuardManipulator guardMan = new GuardManipulator();
+
+        bytes memory payload = abi.encodeWithSelector(
+            GuardManipulator.manipulateGuard.selector,
+            address(0) // https://github.com/safe-global/safe-contracts/blob/6b3784f10a7262d3b857139914aaa33082990435/contracts/Safe.sol#L148
+        );
+
+        bytes memory tSig = getTransactionSignature(
+            kakarotoKey,
+            address(guardMan),
+            payload,
+            Enum.Operation.DelegateCall
+        );
+
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkTransaction_noDelegateCall.selector);
+        safe.execTransaction(
+            address(guardMan),
+            0,
+            payload,
+            Enum.Operation.DelegateCall,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            tSig
+        );
+
+        bytes memory storageAtAfter = safe.getStorageAt(uint256(GUARD_STORAGE_SLOT), 1);
+        address configuredGuardAfter = abi.decode(storageAtAfter, (address));
+
+        assertEq(configuredGuardAfter, configuredGuardBefore);
+    }
+
     function test_owner_can_not_transfer_out_delegated_asset() public {
         vm.prank(delegationOwnerProxy);
         delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
@@ -486,6 +526,41 @@ contract DelegationGuardTest is Config {
         );
     }
 
+    // _checkConfiguration - enableModule
+    function test_owner_can_not_enable_a_module() public {
+        vm.startPrank(kakaroto);
+
+        bytes memory payload = abi.encodeWithSelector(IGnosisSafe.enableModule.selector, address(kakaroto));
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(safe), payload, Enum.Operation.Call);
+
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_enableModuleNotAllowed.selector);
+        safe.execTransaction(address(safe), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+
+        assertFalse(safe.isModuleEnabled(kakaroto));
+    }
+
+    // _checkConfiguration - enableModule
+    function test_owner_can_not_set_new_fallback_handler() public {
+        bytes32 FALLBACK_HANDLER_STORAGE_SLOT = 0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5;
+        bytes memory storageAtBefore = safe.getStorageAt(uint256(FALLBACK_HANDLER_STORAGE_SLOT), 1);
+        address fallBackHandlerBefore = abi.decode(storageAtBefore, (address));
+
+        vm.startPrank(kakaroto);
+
+        bytes memory payload = abi.encodeWithSelector(IGnosisSafe.setFallbackHandler.selector, address(testPunks));
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(safe), payload, Enum.Operation.Call);
+
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed.selector);
+        safe.execTransaction(address(safe), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+
+        bytes memory storageAtAfter = safe.getStorageAt(uint256(FALLBACK_HANDLER_STORAGE_SLOT), 1);
+        address fallBackHandlerAfter = abi.decode(storageAtAfter, (address));
+
+        assertEq(fallBackHandlerAfter, fallBackHandlerBefore);
+    }
+
     // _checkApproveForAll
     function test_nft_owner_can_not_call_approveForAll__when_guard_is_configured() public {
         bytes memory payload = abi.encodeWithSelector(IERC721.setApprovalForAll.selector, kakaroto, true);
@@ -494,5 +569,17 @@ contract DelegationGuardTest is Config {
         vm.prank(kakaroto);
         vm.expectRevert(DelegationGuard.DelegationGuard__checkApproveForAll_noApprovalForAll.selector);
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+    }
+}
+
+contract GuardManipulator {
+    bytes32 internal constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
+
+    function manipulateGuard(address guard) external {
+        bytes32 slot = GUARD_STORAGE_SLOT;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            sstore(slot, guard)
+        }
     }
 }

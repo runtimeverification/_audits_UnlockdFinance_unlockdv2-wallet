@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -46,7 +46,7 @@ contract AllowedControllers is Ownable {
         for (uint256 i; i < length; ) {
             _setLockControllerAllowance(_lockControllers[i], true);
             unchecked {
-                i++;
+                ++i;
             }
         }
 
@@ -79,7 +79,10 @@ contract AllowedControllers is Ownable {
      * @param _controllers - The addresses of the controllers whose allowance list status changed.
      * @param _allowances - The new statuses of whether the controller is allowed or not.
      */
-    function setLockControllerAllowances(address[] calldata _controllers, bool[] calldata _allowances) external onlyOwner {
+    function setLockControllerAllowances(
+        address[] calldata _controllers,
+        bool[] calldata _allowances
+    ) external onlyOwner {
         if (_controllers.length != _allowances.length)
             revert AllowedControllers__setLockControllerAllowances_arityMismatch();
 
@@ -87,7 +90,7 @@ contract AllowedControllers is Ownable {
         for (uint256 i; i < length; ) {
             _setLockControllerAllowance(_controllers[i], _allowances[i]);
             unchecked {
-                i++;
+                ++i;
             }
         }
     }
@@ -121,7 +124,7 @@ contract AllowedControllers is Ownable {
         for (uint256 i; i < length; ) {
             _setDelegationControllerAllowance(_controllers[i], _allowances[i]);
             unchecked {
-                i++;
+                ++i;
             }
         }
     }

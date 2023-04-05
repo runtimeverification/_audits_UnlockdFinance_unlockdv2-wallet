@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 interface ICryptoPunks {
     struct Offer {
@@ -18,6 +18,10 @@ interface ICryptoPunks {
     function punkIndexToAddress(uint256 punkIndex) external view returns (address);
 
     function transferPunk(address to, uint256 punkIndex) external;
+
+    function enterBidForPunk(uint punkIndex) external payable;
+
+    function acceptBidForPunk(uint punkIndex, uint minPrice) external;
 
     function offerPunkForSale(uint punkIndex, uint minSalePriceInWei) external;
 

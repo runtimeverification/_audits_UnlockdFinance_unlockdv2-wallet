@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import { DelegationOwner } from "./DelegationOwner.sol";
 import { IDelegationWalletRegistry } from "./interfaces/IDelegationWalletRegistry.sol";
 
-import { GnosisSafeProxyFactory, GnosisSafeProxy } from "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
+import { GnosisSafeProxyFactory, GnosisSafeProxy }
+    from "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -23,27 +24,27 @@ contract DelegationWalletFactory {
     /**
      * @notice Stores the Safe proxy factory address.
      */
-    address immutable gnosisSafeProxyFactory;
+    address public immutable gnosisSafeProxyFactory;
     /**
      * @notice Stores the Safe implementation address.
      */
-    address immutable singleton;
+    address public immutable singleton;
     /**
      * @notice Stores the Safe CompatibilityFallbackHandler address.
      */
-    address immutable compatibilityFallbackHandler;
+    address public immutable compatibilityFallbackHandler;
     /**
      * @notice Stores the DelegationGuard beacon contract address.
      */
-    address immutable guardBeacon;
+    address public immutable guardBeacon;
     /**
      * @notice Stores the DelegationOwner beacon contract address.
      */
-    address immutable ownerBeacon;
+    address public immutable ownerBeacon;
     /**
      * @notice Stores the DelegationWalletRegistry contract address.
      */
-    address immutable registry;
+    address public immutable registry;
 
     // ========== Events ===========
     event WalletDeployed(

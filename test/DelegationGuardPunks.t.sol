@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestPunks, TestNftPlatform, Config } from "./utils/Config.sol";
+import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestPunks, TestNftPlatform, Config, ICryptoPunks } from "./utils/Config.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
 
@@ -15,8 +15,6 @@ import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { OwnerManager, GuardManager, GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 contract DelegationGuardPunksTest is Config {
-    uint256 private safeProxyPunkId;
-    uint256 private safeProxyPunkId2;
     address[] assets;
     address[] assets2;
     uint256[] assetIds;
@@ -34,11 +32,13 @@ contract DelegationGuardPunksTest is Config {
         delegationOwner = DelegationOwner(delegationOwnerProxy);
         delegationGuard = DelegationGuard(delegationGuardProxy);
 
-        safeProxyPunkId = 1;
-        testPunks.mint(address(safeProxy), safeProxyPunkId);
+        vm.prank(REAL_OWNER);
+        testPunks.transferPunk(address(safeProxy), safeProxyPunkId);
+        assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(safeProxy));
 
-        safeProxyPunkId2 = 2;
-        testPunks.mint(address(safeProxy), safeProxyPunkId2);
+        vm.prank(REAL_OWNER2);
+        testPunks.transferPunk(address(safeProxy), safeProxyPunkId2);
+        assertEq(testPunks.punkIndexToAddress(safeProxyPunkId2), address(safeProxy));
 
         assets.push(address(testPunks));
         assets.push(address(testPunks));
@@ -113,7 +113,7 @@ contract DelegationGuardPunksTest is Config {
 
         vm.warp(block.timestamp + 1);
 
-        bytes memory payload = abi.encodeWithSelector(TestPunks.transferPunk.selector, kakaroto, safeProxyPunkId);
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.transferPunk.selector, kakaroto, safeProxyPunkId);
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
@@ -135,13 +135,46 @@ contract DelegationGuardPunksTest is Config {
         assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(safeProxy));
     }
 
+    function test_owner_can_no_accept_bid_for_delegated_punk() public {
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.setDelegationExpiry(address(testPunks), safeProxyPunkId, expiry);
+
+        vm.startPrank(kakaroto);
+
+        // Create a valid bid for CryptoPunk NFT
+        testPunks.enterBidForPunk{ value: 1 ether }(safeProxyPunkId);
+
+        // Accept bid from delegated wallet
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.acceptBidForPunk.selector, safeProxyPunkId, 1 ether);
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
+
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        safe.execTransaction(
+            address(testPunks),
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            tSig
+        );
+
+        assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(safeProxy));
+
+        vm.stopPrank();
+    }
+
     function test_owner_can_transfer_out_delegated_asset_after_expiry() public {
         vm.prank(delegationOwnerProxy);
         delegationGuard.setDelegationExpiry(address(testPunks), safeProxyPunkId, expiry);
 
         vm.warp(block.timestamp + 10 days + 1);
 
-        bytes memory payload = abi.encodeWithSelector(TestPunks.transferPunk.selector, kakaroto, safeProxyPunkId);
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.transferPunk.selector, kakaroto, safeProxyPunkId);
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
@@ -169,7 +202,7 @@ contract DelegationGuardPunksTest is Config {
 
         vm.warp(block.timestamp + 1);
 
-        bytes memory payload = abi.encodeWithSelector(TestPunks.offerPunkForSale.selector, safeProxyPunkId, 1 ether);
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.offerPunkForSale.selector, safeProxyPunkId, 1 ether);
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
@@ -197,7 +230,7 @@ contract DelegationGuardPunksTest is Config {
 
         vm.warp(block.timestamp + 10 days + 1);
 
-        bytes memory payload = abi.encodeWithSelector(TestPunks.offerPunkForSale.selector, safeProxyPunkId, 1 ether);
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.offerPunkForSale.selector, safeProxyPunkId, 1 ether);
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
@@ -226,7 +259,7 @@ contract DelegationGuardPunksTest is Config {
         vm.warp(block.timestamp + 1);
 
         bytes memory payload = abi.encodeWithSelector(
-            TestPunks.offerPunkForSaleToAddress.selector,
+            ICryptoPunks.offerPunkForSaleToAddress.selector,
             safeProxyPunkId,
             1 ether,
             kakaroto
@@ -259,7 +292,7 @@ contract DelegationGuardPunksTest is Config {
         vm.warp(block.timestamp + 10 days + 1);
 
         bytes memory payload = abi.encodeWithSelector(
-            TestPunks.offerPunkForSaleToAddress.selector,
+            ICryptoPunks.offerPunkForSaleToAddress.selector,
             safeProxyPunkId,
             1 ether,
             kakaroto
@@ -289,7 +322,7 @@ contract DelegationGuardPunksTest is Config {
         vm.prank(delegationOwnerProxy);
         delegationGuard.lockAsset(address(testPunks), safeProxyPunkId);
 
-        bytes memory payload = abi.encodeWithSelector(TestPunks.transferPunk.selector, kakaroto, safeProxyPunkId);
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.transferPunk.selector, kakaroto, safeProxyPunkId);
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
@@ -311,11 +344,45 @@ contract DelegationGuardPunksTest is Config {
         assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(safeProxy));
     }
 
+    function test_owner_can_not_accept_bid_for_locked_punk() public {
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.lockAsset(address(testPunks), safeProxyPunkId);
+
+        vm.startPrank(kakaroto);
+
+        // Create a valid bid for CryptoPunk NFT
+        testPunks.enterBidForPunk{ value: 1 ether }(safeProxyPunkId);
+
+        // Accept bid from delegated wallet
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.acceptBidForPunk.selector, safeProxyPunkId, 1 ether);
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
+
+        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+
+        safe.execTransaction(
+            address(testPunks),
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            tSig
+        );
+
+        vm.stopPrank();
+
+        assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(safeProxy));
+    }
+
     function test_owner_can_transfer_out_unlocked_asset() public {
         vm.prank(delegationOwnerProxy);
         delegationGuard.lockAsset(address(testPunks), safeProxyPunkId);
 
-        bytes memory payload = abi.encodeWithSelector(TestPunks.transferPunk.selector, kakaroto, safeProxyPunkId);
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.transferPunk.selector, kakaroto, safeProxyPunkId);
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
@@ -359,7 +426,7 @@ contract DelegationGuardPunksTest is Config {
         vm.prank(delegationOwnerProxy);
         delegationGuard.lockAsset(address(testPunks), safeProxyPunkId);
 
-        bytes memory payload = abi.encodeWithSelector(TestPunks.offerPunkForSale.selector, safeProxyPunkId, 1 ether);
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.offerPunkForSale.selector, safeProxyPunkId, 1 ether);
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
@@ -385,7 +452,7 @@ contract DelegationGuardPunksTest is Config {
         vm.prank(delegationOwnerProxy);
         delegationGuard.lockAsset(address(testPunks), safeProxyPunkId);
 
-        bytes memory payload = abi.encodeWithSelector(TestPunks.offerPunkForSale.selector, safeProxyPunkId, 1 ether);
+        bytes memory payload = abi.encodeWithSelector(ICryptoPunks.offerPunkForSale.selector, safeProxyPunkId, 1 ether);
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
@@ -428,7 +495,7 @@ contract DelegationGuardPunksTest is Config {
         delegationGuard.lockAsset(address(testPunks), safeProxyPunkId);
 
         bytes memory payload = abi.encodeWithSelector(
-            TestPunks.offerPunkForSaleToAddress.selector,
+            ICryptoPunks.offerPunkForSaleToAddress.selector,
             safeProxyPunkId,
             1 ether,
             kakaroto
@@ -459,7 +526,7 @@ contract DelegationGuardPunksTest is Config {
         delegationGuard.lockAsset(address(testPunks), safeProxyPunkId);
 
         bytes memory payload = abi.encodeWithSelector(
-            TestPunks.offerPunkForSaleToAddress.selector,
+            ICryptoPunks.offerPunkForSaleToAddress.selector,
             safeProxyPunkId,
             1 ether,
             kakaroto

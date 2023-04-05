@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 
@@ -45,14 +45,16 @@ interface IGnosisSafe {
         address payable paymentReceiver
     ) external;
 
-    /// @dev Allows to execute a Safe transaction confirmed by required number of owners and then pays the account that submitted the transaction.
+    /// @dev Allows to execute a Safe transaction confirmed by required number of owners and then pays the account that
+    /// submitted the transaction.
     ///      Note: The fees are always transferred, even if the user transaction fails.
     /// @param to Destination address of Safe transaction.
     /// @param value Ether value of Safe transaction.
     /// @param data Data payload of Safe transaction.
     /// @param operation Operation type of Safe transaction.
     /// @param safeTxGas Gas that should be used for the Safe transaction.
-    /// @param baseGas Gas costs that are independent of the transaction execution(e.g. base transaction fee, signature check, payment of the refund)
+    /// @param baseGas Gas costs that are independent of the transaction execution(e.g. base transaction fee, signature
+    /// check, payment of the refund)
     /// @param gasPrice Gas price that should be used for the payment calculation.
     /// @param gasToken Token address (or 0 if ETH) that is used for the payment.
     /// @param refundReceiver Address of receiver of gas payment (or 0 if tx.origin).
@@ -96,6 +98,8 @@ interface IGnosisSafe {
     function domainSeparator() external view returns (bytes32);
 
     function enableModule(address module) external;
+
+    function setFallbackHandler(address handler) external;
 
     function setGuard(address guard) external;
 
