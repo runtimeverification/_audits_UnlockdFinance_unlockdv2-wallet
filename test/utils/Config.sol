@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
+
 pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
@@ -10,7 +11,6 @@ import { DelegationRecipes } from "src/DelegationRecipes.sol";
 import { DelegationWalletRegistry } from "src/DelegationWalletRegistry.sol";
 import { AllowedControllers } from "src/AllowedControllers.sol";
 import { TestNft } from "src/test/TestNft.sol";
-import { TestPunks } from "src/test/TestPunks.sol";
 import { TestNftPlatform } from "src/test/TestNftPlatform.sol";
 
 import { ICryptoPunks } from "../../src/interfaces/ICryptoPunks.sol";

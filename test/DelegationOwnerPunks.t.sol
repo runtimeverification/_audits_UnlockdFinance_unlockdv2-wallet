@@ -1,13 +1,12 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
+
 pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestPunks, TestNftPlatform, Config } from "./utils/Config.sol";
+import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNftPlatform, Config } from "./utils/Config.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
-
-import { GS } from "../src/test/GS.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { GuardManager, GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
@@ -21,8 +20,6 @@ contract DelegationOwnerPunksTest is Config {
     uint256[] assetIds;
 
     function setUp() public {
-        // debugGs = new GS();
-
         vm.prank(kakaroto);
         (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(
             delegationController,

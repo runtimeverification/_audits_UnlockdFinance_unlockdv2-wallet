@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
+
 pragma solidity 0.8.19;
 
 import { DelegationOwner } from "./DelegationOwner.sol";
 import { IDelegationWalletRegistry } from "./interfaces/IDelegationWalletRegistry.sol";
 
-import { GnosisSafeProxyFactory, GnosisSafeProxy }
-    from "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
+import { GnosisSafeProxyFactory, GnosisSafeProxy } from "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";

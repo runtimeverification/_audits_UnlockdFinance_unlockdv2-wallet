@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity 0.8.19;
 
@@ -7,8 +7,6 @@ import "forge-std/Test.sol";
 import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, TestNftPlatform, Config } from "./utils/Config.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
-
-import { GS } from "../src/test/GS.sol";
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
@@ -24,10 +22,6 @@ contract DelegationGuardTest is Config {
     uint256 expiry;
 
     function setUp() public {
-        // debugGs = new GS();
-        // testNft = new TestNft();
-        // testNftPlatform = new TestNftPlatform(address(testNft));
-
         vm.prank(kakaroto);
         (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(
             delegationController,
