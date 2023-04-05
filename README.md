@@ -39,9 +39,9 @@ Claim date = loan expiry
 
 ## Audit Reports
 
-## Halborn
+### Halborn
 
-* ![6 March 2023](/docs/audits/NFTfi_Delegation_Wallet_Smart_Contract_Security_Audit_Report_Halborn_Final.pdf)
+* [6 March 2023](/docs/audits/NFTfi_Delegation_Wallet_Smart_Contract_Security_Audit_Report_Halborn_Final.pdf)
 
 ## Installation
 
