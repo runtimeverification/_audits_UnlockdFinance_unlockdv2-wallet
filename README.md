@@ -1,8 +1,10 @@
-# Rights Delegation Wallet
+# Unlockd NFT Custody
+
+**Note:** For extended documentation, please refer to [/docs](/docs)
 
 ## Architecture
 
-![DelegationWallet architecture](/docs/architecture.jpg)
+![nft-custody-architecture](/docs/images/architecture.jpg)
 
 ## Definitions
 
