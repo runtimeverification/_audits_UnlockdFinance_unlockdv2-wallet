@@ -90,7 +90,7 @@ contract Config is Test {
 
         // DelegationOwner implementation
         delegationOwnerImpl = address(
-            new DelegationOwner(address(testPunks), address(delegationRecipes), address(allowedControllers))
+            new DelegationOwner(address(testPunks), address(delegationRecipes), address(allowedControllers), address(0))
         );
 
         // DelegationGuard implementation

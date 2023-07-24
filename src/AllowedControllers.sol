@@ -81,7 +81,7 @@ contract AllowedControllers is Ownable {
     /**
      * @notice This function can be called by admins to change the permitted status of a batch of multiple collections.
      *
-     * @param _controllers - The addresses of the collections.
+     * @param _collections - The addresses of the collections.
      * @param _allowances - The new addresses of the collections.
      */
     function setCollectionsAllowances(address[] calldata _collections, bool[] calldata _allowances) external onlyOwner {

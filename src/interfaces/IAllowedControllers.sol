@@ -6,4 +6,6 @@ interface IAllowedControllers {
     function isAllowedLockController(address _controller) external view returns (bool);
 
     function isAllowedDelegationController(address _controller) external view returns (bool);
+
+    function isAllowedCollection(address _collection) external view returns (bool);
 }

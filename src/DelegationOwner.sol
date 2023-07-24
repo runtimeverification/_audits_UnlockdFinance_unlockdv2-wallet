@@ -9,6 +9,8 @@ import { IACLManager } from "./interfaces/IACLManager.sol";
 import { DelegationGuard } from "./DelegationGuard.sol";
 import { DelegationRecipes } from "./DelegationRecipes.sol";
 
+import { AssetLogic } from "./libs/logic/AssetLogic.sol";
+
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
@@ -34,9 +36,10 @@ import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 contract DelegationOwner is ISignatureValidator, Initializable {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
-
+    /**
+     * @notice Address of cryptoPunks
+     */
     address public immutable cryptoPunks;
-
     /**
      * @notice The DelegationRecipes address.
      */
@@ -48,24 +51,14 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     IAllowedControllers public immutable allowedControllers;
 
     /**
-     * @notice The ACLManager address.
+     * @notice The ACLManager address implementatiuon.
      */
-    IACLMAnager public immutable aclManager;
+    IACLManager public immutable aclManager;
 
     /**
-     * @notice Delegation information, it is used for assets and signatures.
-     *
-     * @param controller - The delegation controller address that created the delegations.
-     * @param delegatee - The delegatee address.
-     * @param from - The date (seconds timestamp) when the delegation starts.
-     * @param to - The date (seconds timestamp) when the delegation ends.
+     * @notice total of assets on this wallet
      */
-    struct Delegation {
-        address controller;
-        address delegatee;
-        uint256 from;
-        uint256 to;
-    }
+    uint256 private totalAssets;
 
     /**
      * @notice Safe wallet address.
@@ -117,6 +110,11 @@ contract DelegationOwner is ISignatureValidator, Initializable {
         uint256[] ids;
     }
 
+    struct AssetItem {
+        address nftAsset;
+        uint256 nftTokenId;
+    }
+
     /**
      * @notice List of assets and ids affected by last signatureDelegation. This is used mainly when ending the
      * signature delegation to  be able to set the expiry of each asset on the guard. Using EnumerableSet.values from
@@ -141,7 +139,20 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     mapping(bytes32 => address) public lockedBy;
 
     // ========== Events ===========
-
+    /**
+     * @notice Delegation information, it is used for assets and signatures.
+     *
+     * @param controller - The delegation controller address that created the delegations.
+     * @param delegatee - The delegatee address.
+     * @param from - The date (seconds timestamp) when the delegation starts.
+     * @param to - The date (seconds timestamp) when the delegation ends.
+     */
+    struct Delegation {
+        address controller;
+        address delegatee;
+        uint256 from;
+        uint256 to;
+    }
     event SetDelegationController(address indexed delegationController, bool allowed);
     event SetLockController(address indexed lockController, bool allowed);
     event NewDelegation(
@@ -178,7 +189,10 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     event ClaimedAsset(address indexed asset, uint256 indexed assetId, address indexed receiver);
     event TransferredAsset(address indexed asset, uint256 indexed assetId, address indexed receiver);
 
+    event DepositAsset(address indexed collection, uint256 indexed tokenId, bytes32 tokenIndex);
     // ========== Custom Errors ===========
+    error Collection_notAllowed();
+
     error DelegationGuard__initialize_invalidGuardBeacon();
     error DelegationGuard__initialize_invalidRecipes();
     error DelegationGuard__initialize_invalidSafe();
@@ -342,7 +356,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     ) external onlyDelegationController {
         _checkOwnedAndNotApproved(_asset, _id);
 
-        bytes32 id = assetId(_asset, _id);
+        bytes32 id = AssetLogic.assetId(_asset, _id);
         Delegation storage delegation = delegations[id];
 
         if (_isDelegating(delegation)) revert DelegationOwner__delegate_currentlyDelegated();
@@ -370,7 +384,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
      * @param _id - The asset id.
      */
     function endDelegate(address _asset, uint256 _id) external {
-        Delegation storage delegation = delegations[assetId(_asset, _id)];
+        Delegation storage delegation = delegations[AssetLogic.assetId(_asset, _id)];
         _delegationCreatorChecks(delegation);
 
         delegation.to = 0;
@@ -407,7 +421,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
         for (uint256 j; j < length; ) {
             _checkOwnedAndNotApproved(_assets[j], _ids[j]);
 
-            bytes32 id = assetId(_assets[j], _ids[j]);
+            bytes32 id = AssetLogic.assetId(_assets[j], _ids[j]);
             uint256 claimDate = lockedAssets[id];
             if (claimDate > 0 && claimDate < delegationExpiry)
                 revert DelegationOwner__delegateSignature_invalidExpiry(_assets[j], _ids[j]);
@@ -478,11 +492,11 @@ contract DelegationOwner is ISignatureValidator, Initializable {
         address _gasToken,
         address payable _refundReceiver
     ) external returns (bool success) {
-        Delegation storage delegation = delegations[assetId(_asset, _id)];
+        Delegation storage delegation = delegations[AssetLogic.assetId(_asset, _id)];
 
         if (!_isDelegating(delegation)) revert DelegationOwner__execTransaction_notDelegated();
         if (delegation.delegatee != msg.sender) revert DelegationOwner__execTransaction_invalidDelegatee();
-        if (!isAllowedFunction(_asset, _to, _getSelector(_data)))
+        if (!isAllowedFunction(_asset, _to, AssetLogic.getSelector(_data)))
             revert DelegationOwner__execTransaction_notAllowedFunction();
 
         isExecuting = true;
@@ -572,7 +586,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     function lockAsset(address _asset, uint256 _id, uint256 _claimDate) external onlyLockController {
         _checkOwnedAndNotApproved(_asset, _id);
 
-        bytes32 id = assetId(_asset, _id);
+        bytes32 id = AssetLogic.assetId(_asset, _id);
 
         if (lockedAssets[id] != 0) revert DelegationOwner__lockAsset_assetLocked();
         if (_claimDate < block.timestamp) revert DelegationOwner__lockAsset_invalidClaimDate();
@@ -593,7 +607,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
      * @param _claimDate - The date from which the asset could be claimed if it is also delegated.
      */
     function changeClaimDate(address _asset, uint256 _id, uint256 _claimDate) external {
-        bytes32 id = assetId(_asset, _id);
+        bytes32 id = AssetLogic.assetId(_asset, _id);
         _lockCreatorChecks(id);
 
         if (_claimDate < block.timestamp) revert DelegationOwner__changeClaimDate_invalidClaimDate();
@@ -611,7 +625,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
      * @param _id - The locked asset id.
      */
     function unlockAsset(address _asset, uint256 _id) external {
-        bytes32 id = assetId(_asset, _id);
+        bytes32 id = AssetLogic.assetId(_asset, _id);
         _lockCreatorChecks(id);
 
         lockedAssets[id] = 0;
@@ -628,7 +642,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
      * @param _receiver - The receiving address.
      */
     function claimAsset(address _asset, uint256 _id, address _receiver) external {
-        bytes32 id = assetId(_asset, _id);
+        bytes32 id = AssetLogic.assetId(_asset, _id);
         _lockCreatorChecks(id);
 
         if (lockedAssets[id] > block.timestamp && _isAssetDelegated(id))
@@ -660,7 +674,7 @@ contract DelegationOwner is ISignatureValidator, Initializable {
      * @param _id - The asset id.
      */
     function isAssetDelegated(address _asset, uint256 _id) external view returns (bool) {
-        return _isAssetDelegated(assetId(_asset, _id));
+        return _isAssetDelegated(AssetLogic.assetId(_asset, _id));
     }
 
     /**
@@ -670,13 +684,24 @@ contract DelegationOwner is ISignatureValidator, Initializable {
         return _isDelegating(signatureDelegation);
     }
 
+    function tokenIndex(address nftAsset, uint256 tokenId) external returns (bytes32) {
+        return AssetLogic.assetId(nftAsset, tokenId);
+    }
+
     /**
-     * @notice Returns internal identification of an asset.
-     * @param _asset - The asset addresses.
-     * @param _id - The asset id.
+     * @notice Function to deposit assets on the wallet
      */
-    function assetId(address _asset, uint256 _id) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_asset, _id));
+    function deposit(AssetItem[] calldata assets) external {
+        uint256 cachedAssets = assets.length;
+        for (uint256 i; i < cachedAssets; ) {
+            bytes32 index = AssetLogic.assetId(assets[i].nftAsset, assets[i].nftTokenId);
+            IERC721(assets[i].nftAsset).safeTransferFrom(msg.sender, address(this), assets[i].nftTokenId);
+            totalAssets = totalAssets + 1;
+            emit DepositAsset(assets[i].nftAsset, assets[i].nftTokenId, index);
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     // ========== Internal functions ===========
@@ -693,13 +718,6 @@ contract DelegationOwner is ISignatureValidator, Initializable {
             revert DelegationOwner__setLockController_notAllowedController();
         lockControllers[_lockController] = _allowed;
         emit SetLockController(_lockController, _allowed);
-    }
-
-    function _getSelector(bytes memory _data) internal pure returns (bytes4 selector) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            selector := mload(add(_data, 32))
-        }
     }
 
     function _isAssetDelegated(bytes32 _id) internal view returns (bool) {
@@ -875,5 +893,23 @@ contract DelegationOwner is ISignatureValidator, Initializable {
         if (ICryptoPunks(_asset).punkIndexToAddress(_id) != safe) revert DelegationOwner__transferAsset_assetNotOwned();
 
         return abi.encodeWithSelector(ICryptoPunks.transferPunk.selector, _receiver, _id);
+    }
+
+    function onERC721Received(
+        address _operator,
+        address _from,
+        uint256 tokenId,
+        bytes calldata data
+    ) public returns (bytes4) {
+        bytes32 index = AssetLogic.assetId(msg.sender, tokenId);
+
+        bool isAllowed = allowedControllers.isAllowedCollection(msg.sender);
+        if (!isAllowed) revert Collection_notAllowed();
+
+        totalAssets = totalAssets + 1;
+
+        emit DepositAsset(msg.sender, tokenId, index);
+
+        return this.onERC721Received.selector;
     }
 }

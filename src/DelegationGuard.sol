@@ -9,6 +9,8 @@ import { OwnerManager, GuardManager } from "@gnosis.pm/safe-contracts/contracts/
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
+import { AssetLogic } from "./libs/logic/AssetLogic.sol";
+
 import { DelegationOwner } from "./DelegationOwner.sol";
 import { ICryptoPunks } from "./interfaces/ICryptoPunks.sol";
 import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
@@ -132,7 +134,7 @@ contract DelegationGuard is Guard, Initializable {
         uint256 length = _assets.length;
         for (uint256 j; j < length; ) {
             checkAsset[_assets[j]] = true;
-            delegatedAssets[_assetId(_assets[j], _ids[j])] = _expiry;
+            delegatedAssets[AssetLogic.assetId(_assets[j], _ids[j])] = _expiry;
             unchecked {
                 ++j;
             }
@@ -147,7 +149,7 @@ contract DelegationGuard is Guard, Initializable {
      */
     function setDelegationExpiry(address _asset, uint256 _id, uint256 _expiry) external onlyDelegationOwner {
         checkAsset[_asset] = true;
-        delegatedAssets[_assetId(_asset, _id)] = _expiry;
+        delegatedAssets[AssetLogic.assetId(_asset, _id)] = _expiry;
     }
 
     /**
@@ -158,7 +160,7 @@ contract DelegationGuard is Guard, Initializable {
     function lockAsset(address _asset, uint256 _id) external onlyDelegationOwner {
         if (!_isLocked(_asset, _id)) {
             checkAsset[_asset] = true;
-            lockedAssets[_assetId(_asset, _id)] = true;
+            lockedAssets[AssetLogic.assetId(_asset, _id)] = true;
         }
     }
 
@@ -169,7 +171,7 @@ contract DelegationGuard is Guard, Initializable {
      */
     function unlockAsset(address _asset, uint256 _id) external onlyDelegationOwner {
         if (_isLocked(_asset, _id)) {
-            lockedAssets[_assetId(_asset, _id)] = false;
+            lockedAssets[AssetLogic.assetId(_asset, _id)] = false;
         }
     }
 
@@ -188,7 +190,7 @@ contract DelegationGuard is Guard, Initializable {
      * @param _id - The asset id.
      */
     function getExpiry(address _asset, uint256 _id) external view returns (uint256) {
-        return delegatedAssets[_assetId(_asset, _id)];
+        return delegatedAssets[AssetLogic.assetId(_asset, _id)];
     }
 
     /**
@@ -198,7 +200,7 @@ contract DelegationGuard is Guard, Initializable {
      * @param _data - Data payload of Safe transaction.
      */
     function _checkLocked(address _to, bytes calldata _data) internal view {
-        bytes4 selector = _getSelector(_data);
+        bytes4 selector = AssetLogic.getSelector(_data);
         if (_to == cryptoPunks) {
             if (selector == ICryptoPunks.transferPunk.selector) {
                 (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
@@ -236,7 +238,7 @@ contract DelegationGuard is Guard, Initializable {
      * @param _data - Data payload of Safe transaction.
      */
     function _checkApproveForAll(bytes calldata _data) internal pure {
-        bytes4 selector = _getSelector(_data);
+        bytes4 selector = AssetLogic.getSelector(_data);
 
         if (selector == IERC721.setApprovalForAll.selector)
             revert DelegationGuard__checkApproveForAll_noApprovalForAll();
@@ -248,7 +250,7 @@ contract DelegationGuard is Guard, Initializable {
      * @param _data - Data payload of Safe transaction.
      */
     function _checkConfiguration(address _to, bytes calldata _data) internal view {
-        bytes4 selector = _getSelector(_data);
+        bytes4 selector = AssetLogic.getSelector(_data);
 
         if (_to == DelegationOwner(delegationOwner).safe()) {
             // ownership change not allowed while this guard is configured
@@ -279,7 +281,7 @@ contract DelegationGuard is Guard, Initializable {
      * @param _id - The asset id.
      */
     function _isDelegating(address _asset, uint256 _id) internal view returns (bool) {
-        return (block.timestamp <= delegatedAssets[_assetId(_asset, _id)]);
+        return (block.timestamp <= delegatedAssets[AssetLogic.assetId(_asset, _id)]);
     }
 
     /**
@@ -299,23 +301,6 @@ contract DelegationGuard is Guard, Initializable {
         return (_selector == IERC721.transferFrom.selector ||
             _selector == ERC721_SAFE_TRANSFER_FROM ||
             _selector == ERC721_SAFE_TRANSFER_FROM_DATA);
-    }
-
-    /**
-     * @notice Returns internal identification of an asset.
-     * @param _asset - The asset addresses.
-     * @param _id - The asset id.
-     */
-    function _assetId(address _asset, uint256 _id) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_asset, _id));
-    }
-
-    /**
-     * @notice Returns selector of a data payload.
-     * @param _data - Data payload of Safe transaction
-     */
-    function _getSelector(bytes calldata _data) internal pure returns (bytes4) {
-        return bytes4(_data[:4]);
     }
 
     function supportsInterface(

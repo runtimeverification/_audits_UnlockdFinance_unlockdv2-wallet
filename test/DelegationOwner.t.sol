@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, TestNftPlatform, Config } from "./utils/Config.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
+import { AssetLogic } from "../src/libs/logic/AssetLogic.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { GuardManager, GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
@@ -231,7 +232,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, _duration);
 
         (address controller, address delegatee, uint256 from, uint256 to) = delegationOwner.delegations(
-            delegationOwner.assetId(address(testNft), safeProxyNftId)
+            AssetLogic.assetId(address(testNft), safeProxyNftId)
         );
 
         assertEq(controller, delegationController);
@@ -261,7 +262,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, _duration - 1);
 
         (address controller, address delegatee, uint256 from, uint256 to) = delegationOwner.delegations(
-            delegationOwner.assetId(address(testNft), safeProxyNftId)
+            AssetLogic.assetId(address(testNft), safeProxyNftId)
         );
 
         assertEq(controller, delegationController);
@@ -291,7 +292,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, _duration);
 
         (address controller, address delegatee, uint256 from, uint256 to) = delegationOwner.delegations(
-            delegationOwner.assetId(address(testNft), safeProxyNftId)
+            AssetLogic.assetId(address(testNft), safeProxyNftId)
         );
 
         assertEq(controller, delegationController);
@@ -848,13 +849,12 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + _duration);
 
-        uint256 newClaimDate = delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)) +
-            1;
+        uint256 newClaimDate = delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)) + 1;
 
         vm.prank(nftfi);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, newClaimDate);
 
-        assertEq(delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)), newClaimDate);
+        assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)), newClaimDate);
     }
 
     function test_change_ClaimDate_should_work_reducing_claimDate(uint256 _duration) public {
@@ -863,13 +863,12 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + _duration);
 
-        uint256 newClaimDate = delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)) -
-            1;
+        uint256 newClaimDate = delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)) - 1;
 
         vm.prank(nftfi);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, newClaimDate);
 
-        assertEq(delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)), newClaimDate);
+        assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)), newClaimDate);
     }
 
     function test_change_ClaimDate_should_work_with_reducing_claimDate_to_current_timestamp(uint256 _duration) public {
@@ -883,7 +882,7 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, newClaimDate);
 
-        assertEq(delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)), newClaimDate);
+        assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)), newClaimDate);
     }
 
     function test_change_ClaimDate_should_work_with_delegation_shorter_than_new_claimDate(uint256 _duration) public {
@@ -902,7 +901,7 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, newClaimDate);
 
-        assertEq(delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)), newClaimDate);
+        assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)), newClaimDate);
     }
 
     function test_change_ClaimDate_should_work_with_delegation_equal_than_new_claimDate(uint256 _duration) public {
@@ -921,7 +920,7 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, newClaimDate);
 
-        assertEq(delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)), newClaimDate);
+        assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)), newClaimDate);
     }
 
     function test_change_ClaimDate_should_work_with_sig_delegation_shorter_than_new_claimDate(
@@ -942,7 +941,7 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, newClaimDate);
 
-        assertEq(delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)), newClaimDate);
+        assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)), newClaimDate);
     }
 
     function test_change_ClaimDate_should_work_with_sig_delegation_equal_than_new_claimDate(uint256 _duration) public {
@@ -961,7 +960,7 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, newClaimDate);
 
-        assertEq(delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)), newClaimDate);
+        assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)), newClaimDate);
     }
 
     function test_change_ClaimDate_should_work_with_lock_creator_after_changing_lockController(
@@ -972,8 +971,7 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + _duration);
 
-        uint256 newClaimDate = delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)) +
-            1;
+        uint256 newClaimDate = delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)) + 1;
 
         vm.prank(kakaroto);
         delegationOwner.setLockController(nftfi, false);
@@ -981,7 +979,7 @@ contract DelegationOwnerTest is Config {
         vm.prank(nftfi);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, newClaimDate);
 
-        assertEq(delegationOwner.lockedAssets(delegationOwner.assetId(address(testNft), safeProxyNftId)), newClaimDate);
+        assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testNft), safeProxyNftId)), newClaimDate);
     }
 
     function test_unlockAsset_assetNotLocked(uint256 _duration) public {
