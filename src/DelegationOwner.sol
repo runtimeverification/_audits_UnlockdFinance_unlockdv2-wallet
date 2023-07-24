@@ -5,6 +5,7 @@ pragma solidity 0.8.19;
 import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
 import { ICryptoPunks } from "./interfaces/ICryptoPunks.sol";
 import { IAllowedControllers } from "./interfaces/IAllowedControllers.sol";
+import { IACLManager } from "./interfaces/IACLManager.sol";
 import { DelegationGuard } from "./DelegationGuard.sol";
 import { DelegationRecipes } from "./DelegationRecipes.sol";
 
@@ -45,6 +46,11 @@ contract DelegationOwner is ISignatureValidator, Initializable {
      * @notice The AllowedControllers address.
      */
     IAllowedControllers public immutable allowedControllers;
+
+    /**
+     * @notice The ACLManager address.
+     */
+    IACLMAnager public immutable aclManager;
 
     /**
      * @notice Delegation information, it is used for assets and signatures.
@@ -259,10 +265,11 @@ contract DelegationOwner is ISignatureValidator, Initializable {
     /**
      * @dev Disables the initializer in order to prevent implementation initialization.
      */
-    constructor(address _cryptoPunks, address _recipes, address _allowedControllers) {
+    constructor(address _cryptoPunks, address _recipes, address _allowedControllers, address _aclManager) {
         cryptoPunks = _cryptoPunks;
         recipes = DelegationRecipes(_recipes);
         allowedControllers = IAllowedControllers(_allowedControllers);
+        aclManager = IACLManager(_aclManager);
         _disableInitializers();
     }
 

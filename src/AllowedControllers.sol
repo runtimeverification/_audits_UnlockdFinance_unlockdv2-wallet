@@ -11,6 +11,11 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract AllowedControllers is Ownable {
     /**
+     * @notice A mapping from a collections address
+     */
+    mapping(address => bool) private allowedCollections;
+
+    /**
      * @notice A mapping from a controllers address to whether that address is allowed to be used by a DelegationWallet
      * as a lock controller.
      */
@@ -23,13 +28,15 @@ contract AllowedControllers is Ownable {
     mapping(address => bool) private allowedDelegationControllers;
 
     // ========== Events ===========
+    event Collections(address indexed collections, bool isAllowed);
 
     event LockController(address indexed lockController, bool isAllowed);
 
     event DelegationController(address indexed delegationController, bool isAllowed);
 
     // ========== Custom Errors ===========
-
+    error AllowedCollections__setCollectionsAllowances_invalidAddress();
+    error AllowedCollections__setCollectionsAllowances_arityMismatch();
     error AllowedControllers__setLockControllerAllowances_arityMismatch();
     error AllowedControllers__setDelegationControllerAllowances_arityMismatch();
     error AllowedControllers__setLockControllerAllowance_invalidAddress();
@@ -61,6 +68,34 @@ contract AllowedControllers is Ownable {
     }
 
     // ========== External functions ===========
+    /**
+     * @notice This function can be called by admins to change the allowance status of all the collections.
+     *
+     * @param _collection - The address of the collection.
+     * @param _allowed - The new status of the collection.
+     */
+    function setCollectionAllowance(address _collection, bool _allowed) external onlyOwner {
+        _setCollectionAllowance(_collection, _allowed);
+    }
+
+    /**
+     * @notice This function can be called by admins to change the permitted status of a batch of multiple collections.
+     *
+     * @param _controllers - The addresses of the collections.
+     * @param _allowances - The new addresses of the collections.
+     */
+    function setCollectionsAllowances(address[] calldata _collections, bool[] calldata _allowances) external onlyOwner {
+        if (_collections.length != _allowances.length)
+            revert AllowedCollections__setCollectionsAllowances_arityMismatch();
+
+        uint256 length = _collections.length;
+        for (uint256 i; i < length; ) {
+            _setCollectionAllowance(_collections[i], _allowances[i]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
 
     /**
      * @notice This function can be called by admins to change the allowance status of a lock controller. This includes
@@ -131,6 +166,15 @@ contract AllowedControllers is Ownable {
     }
 
     /**
+     * @notice Checks if an collection address is an allowed .
+     *
+     * @param _collection - The address of the controller.
+     */
+    function isAllowedCollection(address _collection) external view returns (bool) {
+        return allowedCollections[_collection];
+    }
+
+    /**
      * @notice Checks if an address is an allowed lock controller.
      *
      * @param _controller - The address of the controller.
@@ -146,6 +190,21 @@ contract AllowedControllers is Ownable {
      */
     function isAllowedDelegationController(address _controller) external view returns (bool) {
         return allowedDelegationControllers[_controller];
+    }
+
+    /**
+     * @notice Changes the allowance status of an lock controller. This includes both adding a controller to the
+     * allowed list and removing it.
+     *
+     * @param _collection - The address of the controller whose allowance list status changed.
+     * @param _allowed - The new status of whether the controller is allowed or not.
+     */
+    function _setCollectionAllowance(address _collection, bool _allowed) internal {
+        if (_collection == address(0)) revert AllowedCollections__setCollectionsAllowances_invalidAddress();
+
+        allowedCollections[_collection] = _allowed;
+
+        emit LockController(_collection, _allowed);
     }
 
     /**
