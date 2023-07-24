@@ -204,7 +204,7 @@ contract AllowedControllers is Ownable {
 
         allowedCollections[_collection] = _allowed;
 
-        emit LockController(_collection, _allowed);
+        emit Collections(_collection, _allowed);
     }
 
     /**

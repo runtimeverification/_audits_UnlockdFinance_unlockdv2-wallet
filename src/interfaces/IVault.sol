@@ -3,16 +3,12 @@ pragma solidity ^0.8.19;
 
 interface INFTVault {
     // Events
-    event ActivateCollection(address indexed collection);
     event Withdraw(address indexed collection, uint256 indexed tokenId, uint256 tokenIndex);
     event Deposit(address indexed collection, uint256 indexed tokenId, uint256 tokenIndex);
     event RescueToken(address indexed collection, uint256 indexed tokenId, uint256 tokenIndex, address to);
 
     event AssignLoanNFT(uint256 indexed tokenIndex, uint256 loanId);
     event ChangeOwnerNFT(uint256 indexed tokenIndex, address indexed oldOwner, address indexed newOwner);
-
-    // Functions
-    function activateCollection(address nftAsset) external;
 
     function withdraw(address nftAsset, uint256 id) external;
 
