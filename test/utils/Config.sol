@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner } from "src/DelegationOwner.sol";
+import { DelegationOwner, Errors } from "src/DelegationOwner.sol";
 import { DelegationGuard } from "src/DelegationGuard.sol";
 import { DelegationWalletFactory } from "src/DelegationWalletFactory.sol";
 import { DelegationRecipes } from "src/DelegationRecipes.sol";

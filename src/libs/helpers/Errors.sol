@@ -1,0 +1,104 @@
+// SPDX-License-Identifier: agpl-3.0
+pragma solidity 0.8.19;
+
+library Errors {
+    // ========== General ===========
+    error Caller_notProtocol();
+    error Caller_notGovernanceAdmin();
+    error Collection_notAllowed();
+
+    // ========== Delegation Recipes ===========
+    error DelegationRecipes__add_arityMismatch();
+    error DelegationRecipes__remove_arityMismatch();
+
+    // ========== Delegation Owner ===========
+
+    error DelegationGuard__initialize_invalidGuardBeacon();
+    error DelegationGuard__initialize_invalidRecipes();
+    error DelegationGuard__initialize_invalidSafe();
+    error DelegationGuard__initialize_invalidOwner();
+
+    error DelegationOwner__onlyOwner();
+    error DelegationOwner__onlyDelegationController();
+    error DelegationOwner__onlyLockController();
+    error DelegationOwner__onlyDelegationCreator();
+    error DelegationOwner__onlySignatureDelegationCreator();
+    error DelegationOwner__onlyLockCreator();
+
+    error DelegationOwner__delegate_currentlyDelegated();
+    error DelegationOwner__delegate_invalidDelegatee();
+    error DelegationOwner__delegate_invalidDuration();
+    error DelegationOwner__delegate_invalidExpiry();
+
+    error DelegationOwner__delegateSignature_invalidExpiry(address asset, uint256 id);
+    error DelegationOwner__delegateSignature_invalidArity();
+    error DelegationOwner__delegateSignature_currentlyDelegated();
+    error DelegationOwner__delegateSignature_invalidDelegatee();
+    error DelegationOwner__delegateSignature_invalidDuration();
+    error DelegationOwner__endDelegateSignature_invalidArity();
+
+    error DelegationOwner__isValidSignature_notDelegated();
+    error DelegationOwner__isValidSignature_invalidSigner();
+    error DelegationOwner__isValidSignature_invalidExecSig();
+
+    error DelegationOwner__execTransaction_notDelegated();
+    error DelegationOwner__execTransaction_invalidDelegatee();
+    error DelegationOwner__execTransaction_notAllowedFunction();
+    error DelegationOwner__execTransaction_notSuccess();
+
+    error DelegationOwner__lockAsset_assetLocked();
+    error DelegationOwner__lockAsset_invalidClaimDate();
+
+    error DelegationOwner__changeClaimDate_invalidClaimDate();
+
+    error DelegationOwner__claimAsset_assetNotClaimable();
+    error DelegationOwner__claimAsset_assetNotLocked();
+    error DelegationOwner__claimAsset_notSuccess();
+
+    error DelegationOwner__transferAsset_assetNotOwned();
+
+    error DelegationOwner__checkOwnedAndNotApproved_assetNotOwned();
+    error DelegationOwner__checkOwnedAndNotApproved_assetApproved();
+
+    error DelegationOwner__checkClaimDate_assetDelegatedLonger();
+    error DelegationOwner__checkClaimDate_signatureDelegatedLonger();
+
+    error DelegationOwner__lockCreatorChecks_assetNotLocked();
+    error DelegationOwner__lockCreatorChecks_onlyLockCreator();
+
+    error DelegationOwner__delegationCreatorChecks_notDelegated();
+    error DelegationOwner__delegationCreatorChecks_onlyDelegationCreator();
+
+    error DelegationOwner__setDelegationController_notAllowedController();
+    error DelegationOwner__setLockController_notAllowedController();
+
+    // ========== Delegation Guard ===========
+    error DelegationGuard__onlyDelegationOwner();
+    error DelegationGuard__initialize_invalidDelegationOwner();
+    error DelegationGuard__checkTransaction_noDelegateCall();
+    error DelegationGuard__checkLocked_noTransfer();
+    error DelegationGuard__checkLocked_noApproval();
+    error DelegationGuard__checkApproveForAll_noApprovalForAll();
+    error DelegationGuard__checkConfiguration_ownershipChangesNotAllowed();
+    error DelegationGuard__checkConfiguration_guardChangeNotAllowed();
+    error DelegationGuard__checkConfiguration_enableModuleNotAllowed();
+    error DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed();
+
+    // ========== Allowed Controllers ===========
+    error AllowedCollections__setCollectionsAllowances_invalidAddress();
+    error AllowedCollections__setCollectionsAllowances_arityMismatch();
+    error AllowedControllers__setLockControllerAllowances_arityMismatch();
+    error AllowedControllers__setDelegationControllerAllowances_arityMismatch();
+    error AllowedControllers__setLockControllerAllowance_invalidAddress();
+    error AllowedControllers__setDelegationControllerAllowance_invalidAddress();
+
+    // ========== Delegation Wallet Registry ===========
+    error DelegationWalletRegistry__onlyFactoryOrOwner();
+
+    error DelegationWalletRegistry__setFactory_invalidAddress();
+
+    error DelegationWalletRegistry__setWallet_invalidWalletAddress();
+    error DelegationWalletRegistry__setWallet_invalidOwnerAddress();
+    error DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress();
+    error DelegationWalletRegistry__setWallet_invalidGuardAddress();
+}

@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, TestNftPlatform, Config } from "./utils/Config.sol";
+import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, TestNftPlatform, Config, Errors } from "./utils/Config.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
 
@@ -52,7 +52,7 @@ contract DelegationGuardTest is Config {
 
     //setDelegationExpiries
     function test_setDelegationExpiries_onlyDelegationOwner() public {
-        vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
+        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
         delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
     }
 
@@ -66,7 +66,7 @@ contract DelegationGuardTest is Config {
 
     //setDelegationExpiry
     function test_setDelegationExpiry_onlyDelegationOwner() public {
-        vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
+        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
         delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
     }
 
@@ -79,7 +79,7 @@ contract DelegationGuardTest is Config {
 
     //lockAsset
     function test_lockAsset_onlyDelegationOwner() public {
-        vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
+        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
         delegationGuard.lockAsset(address(testNft), safeProxyNftId);
     }
 
@@ -92,7 +92,7 @@ contract DelegationGuardTest is Config {
 
     //unlockAsset
     function test_unlockAsset_onlyDelegationOwner() public {
-        vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
+        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
         delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
     }
 
@@ -129,7 +129,7 @@ contract DelegationGuardTest is Config {
             Enum.Operation.DelegateCall
         );
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkTransaction_noDelegateCall.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkTransaction_noDelegateCall.selector);
         safe.execTransaction(
             address(guardMan),
             0,
@@ -165,7 +165,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
         assertEq(testNft.ownerOf(1), address(safeProxy));
@@ -204,7 +204,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
         assertEq(testNft.getApproved(safeProxyNftId), address(0));
@@ -240,7 +240,7 @@ contract DelegationGuardTest is Config {
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
 
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
@@ -260,7 +260,7 @@ contract DelegationGuardTest is Config {
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
 
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
@@ -283,7 +283,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
         assertEq(testNft.getApproved(safeProxyNftId), address(0));
@@ -298,7 +298,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
         assertEq(testNft.getApproved(safeProxyNftId), address(address(0)));
@@ -322,7 +322,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -347,7 +347,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -370,7 +370,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -393,7 +393,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -411,7 +411,7 @@ contract DelegationGuardTest is Config {
         delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_guardChangeNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -432,7 +432,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -458,7 +458,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -484,7 +484,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -505,7 +505,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safeProxy), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed.selector);
         safe.execTransaction(
             address(safeProxy),
             0,
@@ -528,7 +528,7 @@ contract DelegationGuardTest is Config {
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safe), payload, Enum.Operation.Call);
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_enableModuleNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_enableModuleNotAllowed.selector);
         safe.execTransaction(address(safe), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
         assertFalse(safe.isModuleEnabled(kakaroto));
@@ -546,7 +546,7 @@ contract DelegationGuardTest is Config {
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(safe), payload, Enum.Operation.Call);
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed.selector);
         safe.execTransaction(address(safe), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
         bytes memory storageAtAfter = safe.getStorageAt(uint256(FALLBACK_HANDLER_STORAGE_SLOT), 1);
@@ -561,7 +561,7 @@ contract DelegationGuardTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkApproveForAll_noApprovalForAll.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkApproveForAll_noApprovalForAll.selector);
         safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
     }
 }

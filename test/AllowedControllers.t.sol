@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { AllowedControllers } from "src/AllowedControllers.sol";
+import { AllowedControllers, Errors } from "src/AllowedControllers.sol";
 import { Config } from "./utils/Config.sol";
 
 contract AllowedControllersTest is Config {
@@ -51,7 +51,7 @@ contract AllowedControllersTest is Config {
     }
 
     function test_setLockControllerAllowance_invalidAddress() public {
-        vm.expectRevert(AllowedControllers.AllowedControllers__setLockControllerAllowance_invalidAddress.selector);
+        vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowance_invalidAddress.selector);
         allowedControllers.setLockControllerAllowance(address(0), true);
     }
 
@@ -78,7 +78,7 @@ contract AllowedControllersTest is Config {
         bool[] memory allowances = new bool[](1);
         allowances[0] = true;
 
-        vm.expectRevert(AllowedControllers.AllowedControllers__setLockControllerAllowances_arityMismatch.selector);
+        vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowances_arityMismatch.selector);
         allowedControllers.setLockControllerAllowances(controllers, allowances);
     }
 
@@ -87,7 +87,7 @@ contract AllowedControllersTest is Config {
         controllers[0] = address(0);
         bool[] memory allowances = new bool[](1);
         allowances[0] = true;
-        vm.expectRevert(AllowedControllers.AllowedControllers__setLockControllerAllowance_invalidAddress.selector);
+        vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowance_invalidAddress.selector);
         allowedControllers.setLockControllerAllowances(controllers, allowances);
     }
 
@@ -118,9 +118,7 @@ contract AllowedControllersTest is Config {
     }
 
     function test_setDelegationControllerAllowance_invalidAddress() public {
-        vm.expectRevert(
-            AllowedControllers.AllowedControllers__setDelegationControllerAllowance_invalidAddress.selector
-        );
+        vm.expectRevert(Errors.AllowedControllers__setDelegationControllerAllowance_invalidAddress.selector);
         allowedControllers.setDelegationControllerAllowance(address(0), true);
     }
 
@@ -147,9 +145,7 @@ contract AllowedControllersTest is Config {
         bool[] memory allowances = new bool[](1);
         allowances[0] = true;
 
-        vm.expectRevert(
-            AllowedControllers.AllowedControllers__setDelegationControllerAllowances_arityMismatch.selector
-        );
+        vm.expectRevert(Errors.AllowedControllers__setDelegationControllerAllowances_arityMismatch.selector);
         allowedControllers.setDelegationControllerAllowances(controllers, allowances);
     }
 
@@ -158,9 +154,7 @@ contract AllowedControllersTest is Config {
         controllers[0] = address(0);
         bool[] memory allowances = new bool[](1);
         allowances[0] = true;
-        vm.expectRevert(
-            AllowedControllers.AllowedControllers__setDelegationControllerAllowance_invalidAddress.selector
-        );
+        vm.expectRevert(Errors.AllowedControllers__setDelegationControllerAllowance_invalidAddress.selector);
         allowedControllers.setDelegationControllerAllowances(controllers, allowances);
     }
 

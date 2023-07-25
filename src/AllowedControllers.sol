@@ -2,14 +2,17 @@
 
 pragma solidity 0.8.19;
 
+import { Errors } from "./libs/helpers/Errors.sol";
+
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IAllowedControllers } from "./interfaces/IAllowedControllers.sol";
 
 /**
  * @title AllowedController
  * @author BootNode
  * @dev Registry for allowed addresses to be used as lock or delegation controllers in a DelegationWallet.
  */
-contract AllowedControllers is Ownable {
+contract AllowedControllers is IAllowedControllers, Ownable {
     /**
      * @notice A mapping from a collections address
      */
@@ -26,21 +29,6 @@ contract AllowedControllers is Ownable {
      * as a delegation controller.
      */
     mapping(address => bool) private allowedDelegationControllers;
-
-    // ========== Events ===========
-    event Collections(address indexed collections, bool isAllowed);
-
-    event LockController(address indexed lockController, bool isAllowed);
-
-    event DelegationController(address indexed delegationController, bool isAllowed);
-
-    // ========== Custom Errors ===========
-    error AllowedCollections__setCollectionsAllowances_invalidAddress();
-    error AllowedCollections__setCollectionsAllowances_arityMismatch();
-    error AllowedControllers__setLockControllerAllowances_arityMismatch();
-    error AllowedControllers__setDelegationControllerAllowances_arityMismatch();
-    error AllowedControllers__setLockControllerAllowance_invalidAddress();
-    error AllowedControllers__setDelegationControllerAllowance_invalidAddress();
 
     /**
      * @notice Initialize `allowedLockControllers` and  `allowedDelegationControllers` with a batch of allowed
@@ -86,7 +74,7 @@ contract AllowedControllers is Ownable {
      */
     function setCollectionsAllowances(address[] calldata _collections, bool[] calldata _allowances) external onlyOwner {
         if (_collections.length != _allowances.length)
-            revert AllowedCollections__setCollectionsAllowances_arityMismatch();
+            revert Errors.AllowedCollections__setCollectionsAllowances_arityMismatch();
 
         uint256 length = _collections.length;
         for (uint256 i; i < length; ) {
@@ -120,7 +108,7 @@ contract AllowedControllers is Ownable {
         bool[] calldata _allowances
     ) external onlyOwner {
         if (_controllers.length != _allowances.length)
-            revert AllowedControllers__setLockControllerAllowances_arityMismatch();
+            revert Errors.AllowedControllers__setLockControllerAllowances_arityMismatch();
 
         uint256 length = _controllers.length;
         for (uint256 i; i < length; ) {
@@ -154,7 +142,7 @@ contract AllowedControllers is Ownable {
         bool[] calldata _allowances
     ) external onlyOwner {
         if (_controllers.length != _allowances.length)
-            revert AllowedControllers__setDelegationControllerAllowances_arityMismatch();
+            revert Errors.AllowedControllers__setDelegationControllerAllowances_arityMismatch();
 
         uint256 length = _controllers.length;
         for (uint256 i; i < length; ) {
@@ -171,6 +159,7 @@ contract AllowedControllers is Ownable {
      * @param _collection - The address of the controller.
      */
     function isAllowedCollection(address _collection) external view returns (bool) {
+        if (_collection == address(0)) return false;
         return allowedCollections[_collection];
     }
 
@@ -200,7 +189,7 @@ contract AllowedControllers is Ownable {
      * @param _allowed - The new status of whether the controller is allowed or not.
      */
     function _setCollectionAllowance(address _collection, bool _allowed) internal {
-        if (_collection == address(0)) revert AllowedCollections__setCollectionsAllowances_invalidAddress();
+        if (_collection == address(0)) revert Errors.AllowedCollections__setCollectionsAllowances_invalidAddress();
 
         allowedCollections[_collection] = _allowed;
 
@@ -215,7 +204,8 @@ contract AllowedControllers is Ownable {
      * @param _allowed - The new status of whether the controller is allowed or not.
      */
     function _setLockControllerAllowance(address _lockController, bool _allowed) internal {
-        if (_lockController == address(0)) revert AllowedControllers__setLockControllerAllowance_invalidAddress();
+        if (_lockController == address(0))
+            revert Errors.AllowedControllers__setLockControllerAllowance_invalidAddress();
 
         allowedLockControllers[_lockController] = _allowed;
 
@@ -231,7 +221,7 @@ contract AllowedControllers is Ownable {
      */
     function _setDelegationControllerAllowance(address _delegationController, bool _allowed) internal {
         if (_delegationController == address(0))
-            revert AllowedControllers__setDelegationControllerAllowance_invalidAddress();
+            revert Errors.AllowedControllers__setDelegationControllerAllowance_invalidAddress();
 
         allowedDelegationControllers[_delegationController] = _allowed;
 

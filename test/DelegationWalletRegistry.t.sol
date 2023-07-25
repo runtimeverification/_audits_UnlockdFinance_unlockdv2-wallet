@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { IDelegationWalletRegistry, DelegationWalletRegistry } from "../src/DelegationWalletRegistry.sol";
+import { IDelegationWalletRegistry, DelegationWalletRegistry, Errors } from "../src/DelegationWalletRegistry.sol";
 import { Config } from "./utils/Config.sol";
 
 contract DelegationWalletRegistryTest is Config {
@@ -28,29 +28,27 @@ contract DelegationWalletRegistryTest is Config {
 
     function test_setWallet_onlyFactoryOrOwner() public {
         vm.prank(karpincho);
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__onlyFactoryOrOwner.selector);
+        vm.expectRevert(Errors.DelegationWalletRegistry__onlyFactoryOrOwner.selector);
         registry.setWallet(address(1), address(2), address(3), address(4));
     }
 
     function test_setWallet_owner_invalidWalletAddress() public {
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidWalletAddress.selector);
+        vm.expectRevert(Errors.DelegationWalletRegistry__setWallet_invalidWalletAddress.selector);
         registry.setWallet(address(0), address(2), address(3), address(4));
     }
 
     function test_setWallet_owner_invalidOwnerAddress() public {
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidOwnerAddress.selector);
+        vm.expectRevert(Errors.DelegationWalletRegistry__setWallet_invalidOwnerAddress.selector);
         registry.setWallet(address(1), address(0), address(3), address(4));
     }
 
     function test_setWallet_owner_invalidDelegationOwnerAddress() public {
-        vm.expectRevert(
-            DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress.selector
-        );
+        vm.expectRevert(Errors.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress.selector);
         registry.setWallet(address(1), address(2), address(0), address(4));
     }
 
     function test_setWallet_owner_invalidGuardAddress() public {
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidGuardAddress.selector);
+        vm.expectRevert(Errors.DelegationWalletRegistry__setWallet_invalidGuardAddress.selector);
         registry.setWallet(address(1), address(2), address(3), address(0));
     }
 
@@ -74,7 +72,7 @@ contract DelegationWalletRegistryTest is Config {
         registry.setFactory(karpincho);
         vm.prank(karpincho);
 
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidWalletAddress.selector);
+        vm.expectRevert(Errors.DelegationWalletRegistry__setWallet_invalidWalletAddress.selector);
         registry.setWallet(address(0), address(2), address(3), address(4));
     }
 
@@ -82,7 +80,7 @@ contract DelegationWalletRegistryTest is Config {
         registry.setFactory(karpincho);
         vm.prank(karpincho);
 
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidOwnerAddress.selector);
+        vm.expectRevert(Errors.DelegationWalletRegistry__setWallet_invalidOwnerAddress.selector);
         registry.setWallet(address(1), address(0), address(3), address(4));
     }
 
@@ -90,9 +88,7 @@ contract DelegationWalletRegistryTest is Config {
         registry.setFactory(karpincho);
         vm.prank(karpincho);
 
-        vm.expectRevert(
-            DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress.selector
-        );
+        vm.expectRevert(Errors.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress.selector);
         registry.setWallet(address(1), address(2), address(0), address(4));
     }
 
@@ -100,7 +96,7 @@ contract DelegationWalletRegistryTest is Config {
         registry.setFactory(karpincho);
         vm.prank(karpincho);
 
-        vm.expectRevert(DelegationWalletRegistry.DelegationWalletRegistry__setWallet_invalidGuardAddress.selector);
+        vm.expectRevert(Errors.DelegationWalletRegistry__setWallet_invalidGuardAddress.selector);
         registry.setWallet(address(1), address(2), address(3), address(0));
     }
 

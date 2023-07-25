@@ -3,6 +3,44 @@
 pragma solidity 0.8.19;
 
 interface IDelegationOwner {
+    event SetDelegationController(address indexed delegationController, bool allowed);
+    event SetLockController(address indexed lockController, bool allowed);
+    event NewDelegation(
+        address indexed asset,
+        uint256 indexed assetId,
+        uint256 from,
+        uint256 to,
+        address indexed delegatee,
+        address delegationController
+    );
+    event EndDelegation(address indexed asset, uint256 indexed assetId, address delegationController);
+    event DelegatedSignature(
+        uint256 from,
+        uint256 to,
+        address indexed delegatee,
+        address[] assets,
+        uint256[] assetIds,
+        address delegationController
+    );
+    event EndDelegatedSignature(address[] assets, uint256[] assetIds, address delegationController);
+    event LockedAsset(
+        address indexed asset,
+        uint256 indexed assetId,
+        uint256 claimDate,
+        address indexed lockController
+    );
+    event ChangeClaimDate(
+        address indexed asset,
+        uint256 indexed assetId,
+        uint256 claimDate,
+        address indexed lockController
+    );
+    event UnlockedAsset(address indexed asset, uint256 indexed assetId, address indexed lockController);
+    event ClaimedAsset(address indexed asset, uint256 indexed assetId, address indexed receiver);
+    event TransferredAsset(address indexed asset, uint256 indexed assetId, address indexed receiver);
+
+    event DepositAsset(address indexed collection, uint256 indexed tokenId);
+
     // Delegation Controller Functions
     function delegate(address _asset, uint256 _assetId, address _delegatee, uint256 _duration) external;
 
@@ -14,8 +52,6 @@ interface IDelegationOwner {
         address _delegatee,
         uint256 _duration
     ) external;
-
-    function endDelegateSignature(address[] calldata _assets, uint256[] calldata _assetIds) external;
 
     // Lock Controller Functions
     function lockAsset(address _asset, uint256 _assetId, uint256 _claimDate) external;
@@ -40,9 +76,6 @@ interface IDelegationOwner {
         address payable _refundReceiver
     ) external returns (bool success);
 
-    // View Functions
-    function isValidSignature(bytes calldata _data, bytes calldata _signature) external view returns (bytes4);
-
     function isAllowedFunction(address _asset, address _contract, bytes4 _selector) external view returns (bool);
 
     function isAssetLocked(address _asset, uint256 _assetId) external view returns (bool);
@@ -51,5 +84,13 @@ interface IDelegationOwner {
 
     function isSignatureDelegated() external view returns (bool);
 
-    function assetId(address _asset, uint256 _id) external view returns (bytes32);
+    function batchSetLoanId(address[] calldata nftAsset, uint256[] calldata id, uint256 loanId) external;
+
+    function changeOwner(bytes32 index, address owner) external;
+
+    function endDelegateSignature(address[] calldata _assets, uint256[] calldata _assetIds) external;
+
+    function getLoanId(bytes32 index) external returns (uint256);
+
+    function setLoanId(bytes32 index, uint256 loanId) external;
 }

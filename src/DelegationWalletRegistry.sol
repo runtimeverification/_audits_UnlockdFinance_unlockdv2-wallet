@@ -3,7 +3,7 @@
 pragma solidity 0.8.19;
 
 import { IDelegationWalletRegistry } from "./interfaces/IDelegationWalletRegistry.sol";
-
+import { Errors } from "./libs/helpers/Errors.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -34,23 +34,13 @@ contract DelegationWalletRegistry is IDelegationWalletRegistry, Ownable {
 
     // ========== Events ===========
 
-    // ========== Custom Errors ===========
-    error DelegationWalletRegistry__onlyFactoryOrOwner();
-
-    error DelegationWalletRegistry__setFactory_invalidAddress();
-
-    error DelegationWalletRegistry__setWallet_invalidWalletAddress();
-    error DelegationWalletRegistry__setWallet_invalidOwnerAddress();
-    error DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress();
-    error DelegationWalletRegistry__setWallet_invalidGuardAddress();
-
     // ========== Modifiers ===========
     /**
      * @notice This modifier indicates that only the DelegationWalletFactory can execute a given function.
      */
     modifier onlyFactoryOrOwner() {
         if (_msgSender() != delegationWalletFactory && owner() != _msgSender())
-            revert DelegationWalletRegistry__onlyFactoryOrOwner();
+            revert Errors.DelegationWalletRegistry__onlyFactoryOrOwner();
         _;
     }
 
@@ -61,7 +51,7 @@ contract DelegationWalletRegistry is IDelegationWalletRegistry, Ownable {
      * @param _delegationWalletFactory - The new DelegationWalletFactory address.
      */
     function setFactory(address _delegationWalletFactory) external onlyOwner {
-        if (_delegationWalletFactory == address(0)) revert DelegationWalletRegistry__setFactory_invalidAddress();
+        if (_delegationWalletFactory == address(0)) revert Errors.DelegationWalletRegistry__setFactory_invalidAddress();
         delegationWalletFactory = _delegationWalletFactory;
     }
 
@@ -78,10 +68,11 @@ contract DelegationWalletRegistry is IDelegationWalletRegistry, Ownable {
         address _delegationOwner,
         address _delegationGuard
     ) external onlyFactoryOrOwner {
-        if (_wallet == address(0)) revert DelegationWalletRegistry__setWallet_invalidWalletAddress();
-        if (_owner == address(0)) revert DelegationWalletRegistry__setWallet_invalidOwnerAddress();
-        if (_delegationOwner == address(0)) revert DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress();
-        if (_delegationGuard == address(0)) revert DelegationWalletRegistry__setWallet_invalidGuardAddress();
+        if (_wallet == address(0)) revert Errors.DelegationWalletRegistry__setWallet_invalidWalletAddress();
+        if (_owner == address(0)) revert Errors.DelegationWalletRegistry__setWallet_invalidOwnerAddress();
+        if (_delegationOwner == address(0))
+            revert Errors.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress();
+        if (_delegationGuard == address(0)) revert Errors.DelegationWalletRegistry__setWallet_invalidGuardAddress();
 
         wallets[_wallet] = Wallet(_wallet, _owner, _delegationOwner, _delegationGuard);
 

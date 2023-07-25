@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, TestNftPlatform, Config } from "./utils/Config.sol";
+import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, TestNftPlatform, Config, Errors } from "./utils/Config.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
 import { AssetLogic } from "../src/libs/logic/AssetLogic.sol";
@@ -50,7 +50,7 @@ contract DelegationOwnerTest is Config {
 
     function test_setDelegationController_onlyOwner() public {
         vm.prank(karpincho);
-        vm.expectRevert(DelegationOwner.DelegationOwner__onlyOwner.selector);
+        vm.expectRevert(Errors.DelegationOwner__onlyOwner.selector);
         delegationOwner.setDelegationController(karpincho, true);
     }
 
@@ -73,7 +73,7 @@ contract DelegationOwnerTest is Config {
 
     function test_setDelegationController_notAllowedController() public {
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationOwner.DelegationOwner__setDelegationController_notAllowedController.selector);
+        vm.expectRevert(Errors.DelegationOwner__setDelegationController_notAllowedController.selector);
         delegationOwner.setDelegationController(vegeta, true);
     }
 
@@ -89,7 +89,7 @@ contract DelegationOwnerTest is Config {
 
     function test_setLockController_onlyOwner() public {
         vm.prank(karpincho);
-        vm.expectRevert(DelegationOwner.DelegationOwner__onlyOwner.selector);
+        vm.expectRevert(Errors.DelegationOwner__onlyOwner.selector);
         delegationOwner.setLockController(karpincho, true);
     }
 
@@ -112,7 +112,7 @@ contract DelegationOwnerTest is Config {
 
     function test_setLockController_notAllowedController() public {
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationOwner.DelegationOwner__setLockController_notAllowedController.selector);
+        vm.expectRevert(Errors.DelegationOwner__setLockController_notAllowedController.selector);
         delegationOwner.setLockController(vegeta, true);
     }
 
@@ -130,7 +130,7 @@ contract DelegationOwnerTest is Config {
         vm.assume(_duration != 0);
         vm.prank(karpincho);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__onlyDelegationController.selector);
+        vm.expectRevert(Errors.DelegationOwner__onlyDelegationController.selector);
 
         delegationOwner.delegate(_nft, _id, karpincho, _duration);
     }
@@ -139,7 +139,7 @@ contract DelegationOwnerTest is Config {
         vm.assume(_duration != 0);
         vm.prank(delegationController);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkOwnedAndNotApproved_assetNotOwned.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkOwnedAndNotApproved_assetNotOwned.selector);
 
         delegationOwner.delegate(address(testNft), kakarotoNftId, karpincho, _duration);
     }
@@ -164,7 +164,7 @@ contract DelegationOwnerTest is Config {
 
         vm.prank(delegationController);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkOwnedAndNotApproved_assetApproved.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkOwnedAndNotApproved_assetApproved.selector);
 
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, _duration);
     }
@@ -178,7 +178,7 @@ contract DelegationOwnerTest is Config {
         vm.prank(delegationController);
         vm.warp(block.timestamp + _duration - 1);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegate_currentlyDelegated.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegate_currentlyDelegated.selector);
 
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, _duration);
     }
@@ -187,7 +187,7 @@ contract DelegationOwnerTest is Config {
         vm.assume(_duration > 10 days && _duration < 100 * 365 days);
         vm.prank(delegationController);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegate_invalidDelegatee.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegate_invalidDelegatee.selector);
 
         delegationOwner.delegate(address(testNft), safeProxyNftId, address(0), _duration);
     }
@@ -195,7 +195,7 @@ contract DelegationOwnerTest is Config {
     function test_delegate_invalid_duration() public {
         vm.prank(delegationController);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegate_invalidDuration.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegate_invalidDuration.selector);
 
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, 0);
     }
@@ -211,7 +211,7 @@ contract DelegationOwnerTest is Config {
 
         vm.prank(delegationController);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegate_invalidExpiry.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegate_invalidExpiry.selector);
 
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, _duration + 1);
     }
@@ -303,7 +303,7 @@ contract DelegationOwnerTest is Config {
 
     // end delegate
     function test_endDelegate_notDelegated() public {
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegationCreatorChecks_notDelegated.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegationCreatorChecks_notDelegated.selector);
         delegationOwner.endDelegate(address(testNft), safeProxyNftId);
     }
 
@@ -312,7 +312,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, 10 days);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator.selector);
         delegationOwner.endDelegate(address(testNft), safeProxyNftId);
     }
 
@@ -324,7 +324,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.setDelegationController(karpincho, true);
 
         vm.prank(karpincho);
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator.selector);
         delegationOwner.endDelegate(address(testNft), safeProxyNftId);
     }
 
@@ -358,7 +358,7 @@ contract DelegationOwnerTest is Config {
     // delegate signature
     function test_delegateSignature_onlyRentController() public {
         vm.prank(karpincho);
-        vm.expectRevert(DelegationOwner.DelegationOwner__onlyDelegationController.selector);
+        vm.expectRevert(Errors.DelegationOwner__onlyDelegationController.selector);
 
         delegationOwner.delegateSignature(assets, assetIds, karpincho, 10 days);
     }
@@ -367,7 +367,7 @@ contract DelegationOwnerTest is Config {
         assets.push(address(testNft2));
 
         vm.prank(delegationController);
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegateSignature_invalidArity.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegateSignature_invalidArity.selector);
         delegationOwner.delegateSignature(assets, assetIds, vegeta, 10 days);
     }
 
@@ -376,20 +376,20 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegateSignature(assets, assetIds, karpincho, 10 days);
 
         vm.prank(delegationController);
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegateSignature_currentlyDelegated.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegateSignature_currentlyDelegated.selector);
         delegationOwner.delegateSignature(assets, assetIds, vegeta, 10 days);
     }
 
     function test_delegateSignature_invalidDelegatee() public {
         vm.prank(delegationController);
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegateSignature_invalidDelegatee.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegateSignature_invalidDelegatee.selector);
 
         delegationOwner.delegateSignature(assets, assetIds, address(0), 10 days);
     }
 
     function test_delegateSignature_invalidDuration() public {
         vm.prank(delegationController);
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegateSignature_invalidDuration.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegateSignature_invalidDuration.selector);
 
         delegationOwner.delegateSignature(assets, assetIds, karpincho, 0);
     }
@@ -400,7 +400,7 @@ contract DelegationOwnerTest is Config {
         notOwnedAssetIds[0] = kakarotoNftId;
 
         vm.prank(delegationController);
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkOwnedAndNotApproved_assetNotOwned.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkOwnedAndNotApproved_assetNotOwned.selector);
 
         delegationOwner.delegateSignature(assets, notOwnedAssetIds, karpincho, duration);
     }
@@ -421,7 +421,7 @@ contract DelegationOwnerTest is Config {
         );
 
         vm.prank(delegationController);
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkOwnedAndNotApproved_assetApproved.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkOwnedAndNotApproved_assetApproved.selector);
 
         uint256 duration = 10 days;
         delegationOwner.delegateSignature(assets, assetIds, karpincho, duration);
@@ -451,7 +451,7 @@ contract DelegationOwnerTest is Config {
 
     // end delegate signature
     function test_endDelegateSignature_notDelegated() public {
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegationCreatorChecks_notDelegated.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegationCreatorChecks_notDelegated.selector);
         delegationOwner.endDelegateSignature();
     }
 
@@ -460,7 +460,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegateSignature(assets, assetIds, karpincho, 10 days);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator.selector);
         delegationOwner.endDelegateSignature();
     }
 
@@ -474,7 +474,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.setDelegationController(karpincho, true);
 
         vm.prank(karpincho);
-        vm.expectRevert(DelegationOwner.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator.selector);
+        vm.expectRevert(Errors.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator.selector);
         delegationOwner.endDelegateSignature();
     }
 
@@ -544,7 +544,7 @@ contract DelegationOwnerTest is Config {
             userSignature
         );
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__isValidSignature_notDelegated.selector);
+        vm.expectRevert(Errors.DelegationOwner__isValidSignature_notDelegated.selector);
         IGnosisSafe(address(safe)).isValidSignature(singData, signature);
     }
 
@@ -568,7 +568,7 @@ contract DelegationOwnerTest is Config {
             userSignature
         );
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__isValidSignature_invalidSigner.selector);
+        vm.expectRevert(Errors.DelegationOwner__isValidSignature_invalidSigner.selector);
         IGnosisSafe(address(safe)).isValidSignature(singData, signature);
     }
 
@@ -576,7 +576,7 @@ contract DelegationOwnerTest is Config {
     function test_execTransaction_notDelegated() public {
         vm.prank(karpincho);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__execTransaction_notDelegated.selector);
+        vm.expectRevert(Errors.DelegationOwner__execTransaction_notDelegated.selector);
 
         delegationOwner.execTransaction(
             address(testNft),
@@ -600,7 +600,7 @@ contract DelegationOwnerTest is Config {
         vm.warp(block.timestamp + 10);
 
         vm.prank(vegeta);
-        vm.expectRevert(DelegationOwner.DelegationOwner__execTransaction_invalidDelegatee.selector);
+        vm.expectRevert(Errors.DelegationOwner__execTransaction_invalidDelegatee.selector);
 
         delegationOwner.execTransaction(
             address(testNft),
@@ -624,7 +624,7 @@ contract DelegationOwnerTest is Config {
         vm.warp(block.timestamp + 10);
 
         vm.prank(karpincho);
-        vm.expectRevert(DelegationOwner.DelegationOwner__execTransaction_notAllowedFunction.selector);
+        vm.expectRevert(Errors.DelegationOwner__execTransaction_notAllowedFunction.selector);
 
         delegationOwner.execTransaction(
             address(testNft),
@@ -673,7 +673,7 @@ contract DelegationOwnerTest is Config {
     function test_lockAsset_onlyLoanController() public {
         vm.prank(karpincho);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__onlyLockController.selector);
+        vm.expectRevert(Errors.DelegationOwner__onlyLockController.selector);
 
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + 10 days);
     }
@@ -682,7 +682,7 @@ contract DelegationOwnerTest is Config {
         vm.assume(_duration > 0 && _duration < 100 * 365 days);
         vm.prank(nftfi);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkOwnedAndNotApproved_assetNotOwned.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkOwnedAndNotApproved_assetNotOwned.selector);
 
         delegationOwner.lockAsset(address(testNft), kakarotoNftId, block.timestamp + _duration);
     }
@@ -707,7 +707,7 @@ contract DelegationOwnerTest is Config {
 
         vm.prank(nftfi);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkOwnedAndNotApproved_assetApproved.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkOwnedAndNotApproved_assetApproved.selector);
 
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + _duration);
     }
@@ -717,14 +717,14 @@ contract DelegationOwnerTest is Config {
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + 10 days);
 
         vm.prank(nftfi);
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockAsset_assetLocked.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockAsset_assetLocked.selector);
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + 20 days);
     }
 
     function test_lockAsset_invalidClaimDate() public {
         vm.prank(nftfi);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockAsset_invalidClaimDate.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockAsset_invalidClaimDate.selector);
 
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, 0);
     }
@@ -737,7 +737,7 @@ contract DelegationOwnerTest is Config {
 
         vm.prank(nftfi);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkClaimDate_assetDelegatedLonger.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkClaimDate_assetDelegatedLonger.selector);
 
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + _duration - 1);
     }
@@ -750,7 +750,7 @@ contract DelegationOwnerTest is Config {
 
         vm.prank(nftfi);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkClaimDate_signatureDelegatedLonger.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkClaimDate_signatureDelegatedLonger.selector);
 
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + _duration - 1);
     }
@@ -794,7 +794,7 @@ contract DelegationOwnerTest is Config {
         vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
         vm.prank(nftfi);
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, block.timestamp + _duration);
     }
 
@@ -807,7 +807,7 @@ contract DelegationOwnerTest is Config {
         uint256 deleDuration = _duration - 5 days;
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, block.timestamp + deleDuration - 1);
     }
 
@@ -823,7 +823,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, deleDuration);
 
         vm.prank(nftfi);
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkClaimDate_assetDelegatedLonger.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkClaimDate_assetDelegatedLonger.selector);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, block.timestamp + deleDuration - 1);
     }
 
@@ -839,7 +839,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegateSignature(assets, assetIds, karpincho, deleDuration);
 
         vm.prank(nftfi);
-        vm.expectRevert(DelegationOwner.DelegationOwner__checkClaimDate_signatureDelegatedLonger.selector);
+        vm.expectRevert(Errors.DelegationOwner__checkClaimDate_signatureDelegatedLonger.selector);
         delegationOwner.changeClaimDate(address(testNft), safeProxyNftId, block.timestamp + deleDuration - 1);
     }
 
@@ -986,7 +986,7 @@ contract DelegationOwnerTest is Config {
         vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
         vm.prank(nftfi);
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
         delegationOwner.unlockAsset(address(testNft), safeProxyNftId);
     }
 
@@ -997,14 +997,14 @@ contract DelegationOwnerTest is Config {
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + _duration);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
         delegationOwner.unlockAsset(address(testNft), safeProxyNftId);
     }
 
     function test_unlockAsset_not_owned_nft() public {
         vm.prank(nftfi);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
 
         delegationOwner.unlockAsset(address(testNft), kakarotoNftId);
     }
@@ -1042,7 +1042,7 @@ contract DelegationOwnerTest is Config {
         vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
         vm.prank(nftfi);
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
         delegationOwner.claimAsset(address(testNft), safeProxyNftId, karpincho);
     }
 
@@ -1053,7 +1053,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.lockAsset(address(testNft), safeProxyNftId, block.timestamp + _duration);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationOwner.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
+        vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
         delegationOwner.claimAsset(address(testNft), safeProxyNftId, karpincho);
     }
 
@@ -1069,7 +1069,7 @@ contract DelegationOwnerTest is Config {
 
         vm.prank(nftfi);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__claimAsset_assetNotClaimable.selector);
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
         delegationOwner.claimAsset(address(testNft), safeProxyNftId, address(this));
     }
 
@@ -1085,7 +1085,7 @@ contract DelegationOwnerTest is Config {
 
         vm.prank(nftfi);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__claimAsset_assetNotClaimable.selector);
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
         delegationOwner.claimAsset(address(testNft), safeProxyNftId, address(this));
     }
 
@@ -1099,7 +1099,7 @@ contract DelegationOwnerTest is Config {
 
         vm.warp(block.timestamp + _duration - 2);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__claimAsset_assetNotClaimable.selector);
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
 
         vm.prank(nftfi);
         delegationOwner.claimAsset(address(testNft), safeProxyNftId, address(this));
@@ -1115,7 +1115,7 @@ contract DelegationOwnerTest is Config {
 
         vm.warp(block.timestamp + _duration - 1);
 
-        vm.expectRevert(DelegationOwner.DelegationOwner__claimAsset_assetNotClaimable.selector);
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
 
         vm.prank(nftfi);
         delegationOwner.claimAsset(address(testNft), safeProxyNftId, address(this));

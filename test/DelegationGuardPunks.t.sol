@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNftPlatform, Config, ICryptoPunks } from "./utils/Config.sol";
+import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNftPlatform, Config, ICryptoPunks, Errors } from "./utils/Config.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
 
@@ -48,7 +48,7 @@ contract DelegationGuardPunksTest is Config {
 
     //setDelegationExpiries
     function test_setDelegationExpiries_onlyDelegationOwner() public {
-        vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
+        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
         delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
     }
 
@@ -62,7 +62,7 @@ contract DelegationGuardPunksTest is Config {
 
     //setDelegationExpiry
     function test_setDelegationExpiry_onlyDelegationOwner() public {
-        vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
+        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
         delegationGuard.setDelegationExpiry(address(testPunks), safeProxyPunkId, expiry);
     }
 
@@ -75,7 +75,7 @@ contract DelegationGuardPunksTest is Config {
 
     //lockAsset
     function test_lockAsset_onlyDelegationOwner() public {
-        vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
+        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
         delegationGuard.lockAsset(address(testPunks), safeProxyPunkId);
     }
 
@@ -88,7 +88,7 @@ contract DelegationGuardPunksTest is Config {
 
     //unlockAsset
     function test_unlockAsset_onlyDelegationOwner() public {
-        vm.expectRevert(DelegationGuard.DelegationGuard__onlyDelegationOwner.selector);
+        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
         delegationGuard.unlockAsset(address(testPunks), safeProxyPunkId);
     }
 
@@ -116,7 +116,7 @@ contract DelegationGuardPunksTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
         safe.execTransaction(
             address(testPunks),
             0,
@@ -147,7 +147,7 @@ contract DelegationGuardPunksTest is Config {
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
         safe.execTransaction(
             address(testPunks),
             0,
@@ -205,7 +205,7 @@ contract DelegationGuardPunksTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(
             address(testPunks),
             0,
@@ -266,7 +266,7 @@ contract DelegationGuardPunksTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(
             address(testPunks),
             0,
@@ -324,7 +324,7 @@ contract DelegationGuardPunksTest is Config {
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
 
         safe.execTransaction(
             address(testPunks),
@@ -356,7 +356,7 @@ contract DelegationGuardPunksTest is Config {
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
 
         safe.execTransaction(
             address(testPunks),
@@ -384,7 +384,7 @@ contract DelegationGuardPunksTest is Config {
 
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noTransfer.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
 
         safe.execTransaction(
             address(testPunks),
@@ -429,7 +429,7 @@ contract DelegationGuardPunksTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(
             address(testPunks),
             0,
@@ -455,7 +455,7 @@ contract DelegationGuardPunksTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(
             address(testPunks),
             0,
@@ -502,7 +502,7 @@ contract DelegationGuardPunksTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(
             address(testPunks),
             0,
@@ -533,7 +533,7 @@ contract DelegationGuardPunksTest is Config {
         bytes memory tSig = getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call);
 
         vm.prank(kakaroto);
-        vm.expectRevert(DelegationGuard.DelegationGuard__checkLocked_noApproval.selector);
+        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
         safe.execTransaction(
             address(testPunks),
             0,

@@ -2,6 +2,8 @@
 
 pragma solidity 0.8.19;
 
+import { Errors } from "./libs/helpers/Errors.sol";
+
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -42,7 +44,7 @@ contract DelegationRecipes is Ownable {
         string[] calldata _descriptions
     ) external onlyOwner {
         if (_contracts.length != _selectors.length || _selectors.length != _descriptions.length)
-            revert DelegationRecipes__add_arityMismatch();
+            revert Errors.DelegationRecipes__add_arityMismatch();
 
         bytes32 functionId;
         uint256 length = _contracts.length;
@@ -70,7 +72,7 @@ contract DelegationRecipes is Ownable {
         address[] calldata _contracts,
         bytes4[] calldata _selectors
     ) external onlyOwner {
-        if (_contracts.length != _selectors.length) revert DelegationRecipes__remove_arityMismatch();
+        if (_contracts.length != _selectors.length) revert Errors.DelegationRecipes__remove_arityMismatch();
 
         bytes32 functionId;
         uint256 length = _contracts.length;

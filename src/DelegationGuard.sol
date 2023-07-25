@@ -10,6 +10,7 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import { AssetLogic } from "./libs/logic/AssetLogic.sol";
+import { Errors } from "./libs/helpers/Errors.sol";
 
 import { DelegationOwner } from "./DelegationOwner.sol";
 import { ICryptoPunks } from "./interfaces/ICryptoPunks.sol";
@@ -46,23 +47,11 @@ contract DelegationGuard is Guard, Initializable {
     // keccak256(address, nft id) => delegation expiry
     mapping(bytes32 => uint256) internal delegatedAssets; // this locks assets base on a date
 
-    // ========== Custom Errors ===========
-    error DelegationGuard__onlyDelegationOwner();
-    error DelegationGuard__initialize_invalidDelegationOwner();
-    error DelegationGuard__checkTransaction_noDelegateCall();
-    error DelegationGuard__checkLocked_noTransfer();
-    error DelegationGuard__checkLocked_noApproval();
-    error DelegationGuard__checkApproveForAll_noApprovalForAll();
-    error DelegationGuard__checkConfiguration_ownershipChangesNotAllowed();
-    error DelegationGuard__checkConfiguration_guardChangeNotAllowed();
-    error DelegationGuard__checkConfiguration_enableModuleNotAllowed();
-    error DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed();
-
     /**
      * @notice This modifier indicates that only the DelegationOwner contract can execute a given function.
      */
     modifier onlyDelegationOwner() {
-        if (delegationOwner != msg.sender) revert DelegationGuard__onlyDelegationOwner();
+        if (delegationOwner != msg.sender) revert Errors.DelegationGuard__onlyDelegationOwner();
         _;
     }
 
@@ -72,7 +61,7 @@ contract DelegationGuard is Guard, Initializable {
     }
 
     function initialize(address _delegationOwner) public initializer {
-        if (_delegationOwner == address(0)) revert DelegationGuard__initialize_invalidDelegationOwner();
+        if (_delegationOwner == address(0)) revert Errors.DelegationGuard__initialize_invalidDelegationOwner();
         delegationOwner = _delegationOwner;
     }
 
@@ -100,7 +89,7 @@ contract DelegationGuard is Guard, Initializable {
     ) external view override {
         // malicious owner can execute transactions to smart contracts by using Enum.Operation.DelegateCall in order to
         // manipulate the Safe's internal storage and even transfer locked NFTs out of the delegation wallet
-        if (operation == Enum.Operation.DelegateCall) revert DelegationGuard__checkTransaction_noDelegateCall();
+        if (operation == Enum.Operation.DelegateCall) revert Errors.DelegationGuard__checkTransaction_noDelegateCall();
 
         // Transactions coming from DelegationOwner are already blocked/allowed there.
         // The delegatee calls execTransaction on DelegationOwner, it checks allowance then calls execTransaction
@@ -205,30 +194,30 @@ contract DelegationGuard is Guard, Initializable {
             if (selector == ICryptoPunks.transferPunk.selector) {
                 (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
                 if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
-                    revert DelegationGuard__checkLocked_noTransfer();
+                    revert Errors.DelegationGuard__checkLocked_noTransfer();
             } else if (selector == ICryptoPunks.offerPunkForSale.selector) {
                 (uint256 assetId, ) = abi.decode(_data[4:], (uint256, uint256));
                 if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
-                    revert DelegationGuard__checkLocked_noApproval();
+                    revert Errors.DelegationGuard__checkLocked_noApproval();
             } else if (selector == ICryptoPunks.offerPunkForSaleToAddress.selector) {
                 (uint256 assetId, , ) = abi.decode(_data[4:], (uint256, uint256, address));
                 if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
-                    revert DelegationGuard__checkLocked_noApproval();
+                    revert Errors.DelegationGuard__checkLocked_noApproval();
             } else if (selector == ICryptoPunks.acceptBidForPunk.selector) {
                 (uint256 assetId, ) = abi.decode(_data[4:], (uint256, uint256));
                 if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
-                    revert DelegationGuard__checkLocked_noTransfer();
+                    revert Errors.DelegationGuard__checkLocked_noTransfer();
             }
         } else {
             // move this check to an adaptor per asset address?
             if (_isTransfer(selector)) {
                 (, , uint256 assetId) = abi.decode(_data[4:], (address, address, uint256));
                 if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
-                    revert DelegationGuard__checkLocked_noTransfer();
+                    revert Errors.DelegationGuard__checkLocked_noTransfer();
             } else if (selector == IERC721.approve.selector) {
                 (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
                 if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
-                    revert DelegationGuard__checkLocked_noApproval();
+                    revert Errors.DelegationGuard__checkLocked_noApproval();
             }
         }
     }
@@ -241,7 +230,7 @@ contract DelegationGuard is Guard, Initializable {
         bytes4 selector = AssetLogic.getSelector(_data);
 
         if (selector == IERC721.setApprovalForAll.selector)
-            revert DelegationGuard__checkApproveForAll_noApprovalForAll();
+            revert Errors.DelegationGuard__checkApproveForAll_noApprovalForAll();
     }
 
     /**
@@ -259,19 +248,19 @@ contract DelegationGuard is Guard, Initializable {
                 selector == OwnerManager.removeOwner.selector ||
                 selector == OwnerManager.swapOwner.selector ||
                 selector == OwnerManager.changeThreshold.selector
-            ) revert DelegationGuard__checkConfiguration_ownershipChangesNotAllowed();
+            ) revert Errors.DelegationGuard__checkConfiguration_ownershipChangesNotAllowed();
 
             // Guard change not allowed
             if (selector == GuardManager.setGuard.selector)
-                revert DelegationGuard__checkConfiguration_guardChangeNotAllowed();
+                revert Errors.DelegationGuard__checkConfiguration_guardChangeNotAllowed();
 
             // Adding modules is not allowed
             if (selector == IGnosisSafe.enableModule.selector)
-                revert DelegationGuard__checkConfiguration_enableModuleNotAllowed();
+                revert Errors.DelegationGuard__checkConfiguration_enableModuleNotAllowed();
 
             // Changing FallbackHandler is not allowed
             if (selector == IGnosisSafe.setFallbackHandler.selector)
-                revert DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed();
+                revert Errors.DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed();
         }
     }
 
