@@ -94,7 +94,7 @@ contract DelegationGuard is Guard, Initializable {
         // Transactions coming from DelegationOwner are already blocked/allowed there.
         // The delegatee calls execTransaction on DelegationOwner, it checks allowance then calls execTransaction
         // from Safe.
-        if (_msgSender != delegationOwner && checkAsset[_to]) {
+        if (_msgSender != delegationOwner) {
             _checkLocked(_to, _data);
         }
 
@@ -122,7 +122,6 @@ contract DelegationGuard is Guard, Initializable {
     ) external onlyDelegationOwner {
         uint256 length = _assets.length;
         for (uint256 j; j < length; ) {
-            checkAsset[_assets[j]] = true;
             delegatedAssets[AssetLogic.assetId(_assets[j], _ids[j])] = _expiry;
             unchecked {
                 ++j;
@@ -137,49 +136,43 @@ contract DelegationGuard is Guard, Initializable {
      * @param _expiry - The delegation expiry.
      */
     function setDelegationExpiry(address _asset, uint256 _id, uint256 _expiry) external onlyDelegationOwner {
-        checkAsset[_asset] = true;
         delegatedAssets[AssetLogic.assetId(_asset, _id)] = _expiry;
     }
 
     /**
      * @notice Sets an asset as locked.
-     * @param _asset - The asset address.
      * @param _id - The asset id.
      */
-    function lockAsset(address _asset, uint256 _id) external onlyDelegationOwner {
-        if (!_isLocked(_asset, _id)) {
-            checkAsset[_asset] = true;
-            lockedAssets[AssetLogic.assetId(_asset, _id)] = true;
+    function lockAsset(bytes32 _id) external onlyDelegationOwner {
+        if (!_isLocked(_id)) {
+            lockedAssets[_id] = true;
         }
     }
 
     /**
      * @notice Sets an asset as unlocked.
-     * @param _asset - The asset address.
      * @param _id - The asset id.
      */
-    function unlockAsset(address _asset, uint256 _id) external onlyDelegationOwner {
-        if (_isLocked(_asset, _id)) {
-            lockedAssets[AssetLogic.assetId(_asset, _id)] = false;
+    function unlockAsset(bytes32 _id) external onlyDelegationOwner {
+        if (_isLocked(_id)) {
+            lockedAssets[_id] = false;
         }
     }
 
     /**
      * @notice Returns if an asset is locked.
-     * @param _asset - The asset addresses.
      * @param _id - The asset id.
      */
-    function isLocked(address _asset, uint256 _id) external view returns (bool) {
-        return _isLocked(_asset, _id);
+    function isLocked(bytes32 _id) external view returns (bool) {
+        return _isLocked(_id);
     }
 
     /**
      * @notice Returns asset delegation expiry.
-     * @param _asset - The asset addresses.
      * @param _id - The asset id.
      */
-    function getExpiry(address _asset, uint256 _id) external view returns (uint256) {
-        return delegatedAssets[AssetLogic.assetId(_asset, _id)];
+    function getExpiry(bytes32 _id) external view returns (uint256) {
+        return delegatedAssets[_id];
     }
 
     /**
@@ -193,30 +186,30 @@ contract DelegationGuard is Guard, Initializable {
         if (_to == cryptoPunks) {
             if (selector == ICryptoPunks.transferPunk.selector) {
                 (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
-                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId)))
                     revert Errors.DelegationGuard__checkLocked_noTransfer();
             } else if (selector == ICryptoPunks.offerPunkForSale.selector) {
                 (uint256 assetId, ) = abi.decode(_data[4:], (uint256, uint256));
-                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId)))
                     revert Errors.DelegationGuard__checkLocked_noApproval();
             } else if (selector == ICryptoPunks.offerPunkForSaleToAddress.selector) {
                 (uint256 assetId, , ) = abi.decode(_data[4:], (uint256, uint256, address));
-                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId)))
                     revert Errors.DelegationGuard__checkLocked_noApproval();
             } else if (selector == ICryptoPunks.acceptBidForPunk.selector) {
                 (uint256 assetId, ) = abi.decode(_data[4:], (uint256, uint256));
-                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId)))
                     revert Errors.DelegationGuard__checkLocked_noTransfer();
             }
         } else {
             // move this check to an adaptor per asset address?
             if (_isTransfer(selector)) {
                 (, , uint256 assetId) = abi.decode(_data[4:], (address, address, uint256));
-                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId)))
                     revert Errors.DelegationGuard__checkLocked_noTransfer();
             } else if (selector == IERC721.approve.selector) {
                 (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
-                if (_isDelegating(_to, assetId) || _isLocked(_to, assetId))
+                if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId)))
                     revert Errors.DelegationGuard__checkLocked_noApproval();
             }
         }
@@ -275,11 +268,10 @@ contract DelegationGuard is Guard, Initializable {
 
     /**
      * @notice Checks if an asset is locked.
-     * @param _asset - The asset addresses.
-     * @param _id - The asset id.
+     * @param _id - Asset id
      */
-    function _isLocked(address _asset, uint256 _id) internal view returns (bool) {
-        return lockedAssets[keccak256(abi.encodePacked(_asset, _id))];
+    function _isLocked(bytes32 _id) internal view returns (bool) {
+        return lockedAssets[_id];
     }
 
     /**

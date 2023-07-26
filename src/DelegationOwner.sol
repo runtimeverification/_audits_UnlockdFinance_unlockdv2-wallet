@@ -86,7 +86,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     /**
      * @notice Relation between the assetId and the loanId
      */
-    mapping(uint256 => bytes32) loansIds;
+    mapping(bytes32 => uint256) loansIds;
 
     /**
      * @notice The DelegationGuard address.
@@ -282,7 +282,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         if (_delegatee == address(0)) revert Errors.DelegationOwner__delegate_invalidDelegatee();
         if (_duration == 0) revert Errors.DelegationOwner__delegate_invalidDuration();
         // @dev is the asset is locked you can't delegate
-        if (guard.isLocked(_asset, _id)) revert Errors.DelegationOwner__delegate_assetLocked();
+        if (guard.isLocked(id)) revert Errors.DelegationOwner__delegate_assetLocked();
 
         delegation.controller = msg.sender;
         delegation.delegatee = _delegatee;
@@ -338,9 +338,9 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         uint256 length = _assets.length;
         for (uint256 j; j < length; ) {
             _checkOwnedAndNotApproved(_assets[j], _ids[j]);
-
+            bytes32 id = AssetLogic.assetId(_assets[j], _ids[j]);
             // @dev is the asset is locked you can't delegate
-            if (guard.isLocked(_assets[j], _ids[j])) revert Errors.DelegationOwner__delegate_assetLocked();
+            if (guard.isLocked(id)) revert Errors.DelegationOwner__delegate_assetLocked();
 
             signatureDelegationAssets[currentSignatureDelegationAssets].assets.push(_assets[j]);
             signatureDelegationAssets[currentSignatureDelegationAssets].ids.push(_ids[j]);
@@ -519,7 +519,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      * @param _id - The asset id.
      */
     function isAssetLocked(address _asset, uint256 _id) external view returns (bool) {
-        return guard.isLocked(_asset, _id);
+        return guard.isLocked(AssetLogic.assetId(_asset, _id));
     }
 
     /**
@@ -806,7 +806,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         bytes calldata data
     ) public returns (bytes4) {
         bool isAllowed = allowedControllers.isAllowedCollection(msg.sender);
-        if (!isAllowed) revert Errors.Collection_notAllowed();
+        if (!isAllowed) revert Errors.DelegationOwner__collectionNotAllowed();
 
         totalAssets = totalAssets + 1;
 

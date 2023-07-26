@@ -30,12 +30,7 @@ interface IDelegationOwner {
         uint256 claimDate,
         address indexed lockController
     );
-    event ChangeClaimDate(
-        address indexed asset,
-        uint256 indexed assetId,
-        uint256 claimDate,
-        address indexed lockController
-    );
+
     event UnlockedAsset(address indexed asset, uint256 indexed assetId, address indexed lockController);
     event ClaimedAsset(address indexed asset, uint256 indexed assetId, address indexed receiver);
     event TransferredAsset(address indexed asset, uint256 indexed assetId, address indexed receiver);
@@ -58,11 +53,6 @@ interface IDelegationOwner {
     ) external;
 
     // Lock Controller Functions
-    function lockAsset(address _asset, uint256 _assetId, uint256 _claimDate) external;
-
-    function changeClaimDate(address _asset, uint256 _id, uint256 _claimDate) external;
-
-    function unlockAsset(address _asset, uint256 _assetId) external;
 
     function claimAsset(address _asset, uint256 _assetId, address _receiver) external;
 
@@ -90,7 +80,7 @@ interface IDelegationOwner {
 
     function batchSetLoanId(address[] calldata nftAsset, uint256[] calldata id, uint256 loanId) external;
 
-    function changeOwner(bytes32 index, address owner) external;
+    function changeOwner(address _asset, uint256 _id, address _newOwner) external;
 
     function getLoanId(bytes32 index) external returns (uint256);
 
