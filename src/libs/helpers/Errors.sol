@@ -5,7 +5,6 @@ library Errors {
     // ========== General ===========
     error Caller_notProtocol();
     error Caller_notGovernanceAdmin();
-    error Collection_notAllowed();
 
     // ========== Delegation Recipes ===========
     error DelegationRecipes__add_arityMismatch();
@@ -28,9 +27,10 @@ library Errors {
     error DelegationOwner__delegate_currentlyDelegated();
     error DelegationOwner__delegate_invalidDelegatee();
     error DelegationOwner__delegate_invalidDuration();
-    error DelegationOwner__delegate_invalidExpiry();
+    error DelegationOwner__delegate_assetLocked();
 
-    error DelegationOwner__delegateSignature_invalidExpiry(address asset, uint256 id);
+    error DelegationOwner__deposit_collectionNotAllowed();
+    // error DelegationOwner__delegateSignature_invalidExpiry(address asset, uint256 id);
     error DelegationOwner__delegateSignature_invalidArity();
     error DelegationOwner__delegateSignature_currentlyDelegated();
     error DelegationOwner__delegateSignature_invalidDelegatee();
@@ -52,9 +52,10 @@ library Errors {
     error DelegationOwner__changeClaimDate_invalidClaimDate();
 
     error DelegationOwner__claimAsset_assetNotClaimable();
-    error DelegationOwner__claimAsset_assetNotLocked();
+    error DelegationOwner__claimAsset_assetLocked();
     error DelegationOwner__claimAsset_notSuccess();
 
+    error DelegationOwner__changeOwner_notSuccess();
     error DelegationOwner__transferAsset_assetNotOwned();
 
     error DelegationOwner__checkOwnedAndNotApproved_assetNotOwned();
@@ -71,6 +72,8 @@ library Errors {
 
     error DelegationOwner__setDelegationController_notAllowedController();
     error DelegationOwner__setLockController_notAllowedController();
+
+    error DelegationOwner__batchSetLoanId_arityMismatch();
 
     // ========== Delegation Guard ===========
     error DelegationGuard__onlyDelegationOwner();

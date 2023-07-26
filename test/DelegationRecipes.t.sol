@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, Config, TestNftPlatform, DelegationRecipes } from "./utils/Config.sol";
+import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, Config, TestNftPlatform, DelegationRecipes, Errors } from "./utils/Config.sol";
 
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
@@ -41,7 +41,7 @@ contract DelegationRecipesTest is Config {
         descriptions[0] = "Some description";
         descriptions[1] = "Some description 2";
 
-        vm.expectRevert(DelegationRecipes.DelegationRecipes__add_arityMismatch.selector);
+        vm.expectRevert(Errors.DelegationRecipes__add_arityMismatch.selector);
         delegationRecipes.add(address(testNft), contracts, selectors, descriptions);
     }
 
@@ -54,7 +54,7 @@ contract DelegationRecipesTest is Config {
         selectors[1] = TestNftPlatform.allowedFunction.selector;
         descriptions[0] = "Some description";
 
-        vm.expectRevert(DelegationRecipes.DelegationRecipes__add_arityMismatch.selector);
+        vm.expectRevert(Errors.DelegationRecipes__add_arityMismatch.selector);
         delegationRecipes.add(address(testNft), contracts, selectors, descriptions);
     }
 
@@ -103,7 +103,7 @@ contract DelegationRecipesTest is Config {
         selectors[0] = TestNftPlatform.allowedFunction.selector;
         selectors[1] = TestNftPlatform.allowedFunction.selector;
 
-        vm.expectRevert(DelegationRecipes.DelegationRecipes__remove_arityMismatch.selector);
+        vm.expectRevert(Errors.DelegationRecipes__remove_arityMismatch.selector);
         delegationRecipes.remove(address(testNft), contracts, selectors);
     }
 

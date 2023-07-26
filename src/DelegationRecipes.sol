@@ -28,8 +28,6 @@ contract DelegationRecipes is Ownable {
     event RemoveRecipe(address indexed collection, address[] contracts, bytes4[] selectors);
 
     // ========== Events ===========
-    error DelegationRecipes__add_arityMismatch();
-    error DelegationRecipes__remove_arityMismatch();
 
     /**
      * @notice Adds a group of allowed functions to a collection.

@@ -83,6 +83,10 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      * @notice The lock controller address. Allowed to execute asset locking related functions.
      */
     mapping(address => bool) public lockControllers;
+    /**
+     * @notice Relation between the assetId and the loanId
+     */
+    mapping(uint256 => bytes32) loansIds;
 
     /**
      * @notice The DelegationGuard address.
@@ -136,10 +140,10 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      */
     mapping(bytes32 => uint256) public lockedAssets;
 
-    /**
-     * @notice Stores for each locked assets the lock controller address
-     */
-    mapping(bytes32 => address) public lockedBy;
+    // /**
+    //  * @notice Stores for each locked assets the lock controller address
+    //  */
+    // mapping(bytes32 => address) public lockedBy;
 
     // ========== Events ===========
     /**
@@ -243,7 +247,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      * @param _delegationController - The new delegation controller address.
      * @param _allowed - Allowance status.
      */
-    function setDelegationController(address _delegationController, bool _allowed) external onlyOwner {
+    function setDelegationController(address _delegationController, bool _allowed) external onlyGov {
         _setDelegationController(_delegationController, _allowed);
     }
 
@@ -252,7 +256,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      * @param _lockController - The new lock controller address.
      * @param _allowed - Allowance status.
      */
-    function setLockController(address _lockController, bool _allowed) external onlyOwner {
+    function setLockController(address _lockController, bool _allowed) external onlyGov {
         _setLockController(_lockController, _allowed);
     }
 
@@ -277,6 +281,8 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         if (_isDelegating(delegation)) revert Errors.DelegationOwner__delegate_currentlyDelegated();
         if (_delegatee == address(0)) revert Errors.DelegationOwner__delegate_invalidDelegatee();
         if (_duration == 0) revert Errors.DelegationOwner__delegate_invalidDuration();
+        // @dev is the asset is locked you can't delegate
+        if (guard.isLocked(_asset, _id)) revert Errors.DelegationOwner__delegate_assetLocked();
 
         delegation.controller = msg.sender;
         delegation.delegatee = _delegatee;
@@ -284,9 +290,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         uint256 to = block.timestamp + _duration;
         delegation.from = from;
         delegation.to = to;
-
-        uint256 claimDate = lockedAssets[id];
-        if (claimDate > 0 && claimDate < to) revert Errors.DelegationOwner__delegate_invalidExpiry();
 
         emit NewDelegation(_asset, _id, from, to, _delegatee, msg.sender);
 
@@ -307,10 +310,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         emit EndDelegation(_asset, _id, msg.sender);
 
         guard.setDelegationExpiry(_asset, _id, 0);
-    }
-
-    function endDelegateSignature(address[] calldata _assets, uint256[] calldata _assetIds) external {
-        // NOTHING TO DO
     }
 
     /**
@@ -340,10 +339,8 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         for (uint256 j; j < length; ) {
             _checkOwnedAndNotApproved(_assets[j], _ids[j]);
 
-            bytes32 id = AssetLogic.assetId(_assets[j], _ids[j]);
-            uint256 claimDate = lockedAssets[id];
-            if (claimDate > 0 && claimDate < delegationExpiry)
-                revert Errors.DelegationOwner__delegateSignature_invalidExpiry(_assets[j], _ids[j]);
+            // @dev is the asset is locked you can't delegate
+            if (guard.isLocked(_assets[j], _ids[j])) revert Errors.DelegationOwner__delegate_assetLocked();
 
             signatureDelegationAssets[currentSignatureDelegationAssets].assets.push(_assets[j]);
             signatureDelegationAssets[currentSignatureDelegationAssets].ids.push(_ids[j]);
@@ -498,79 +495,16 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     }
 
     /**
-     * @notice Sets an asset as locked.
-     * @param _asset - The locked asset addresses.
-     * @param _id - The locked asset id.
-     * @param _claimDate - The date from which the asset could be claimed if it is also delegated.
-     */
-    function lockAsset(address _asset, uint256 _id, uint256 _claimDate) external onlyLockController {
-        _checkOwnedAndNotApproved(_asset, _id);
-
-        bytes32 id = AssetLogic.assetId(_asset, _id);
-
-        if (lockedAssets[id] != 0) revert Errors.DelegationOwner__lockAsset_assetLocked();
-        if (_claimDate < block.timestamp) revert Errors.DelegationOwner__lockAsset_invalidClaimDate();
-
-        _checkClaimDate(id, _claimDate);
-
-        lockedAssets[id] = _claimDate;
-        lockedBy[id] = msg.sender;
-        guard.lockAsset(_asset, _id);
-
-        emit LockedAsset(_asset, _id, _claimDate, msg.sender);
-    }
-
-    /**
-     * @notice Updates the claimDate for a locked asset.
-     * @param _asset - The locked asset addresses.
-     * @param _id - The locked asset id.
-     * @param _claimDate - The date from which the asset could be claimed if it is also delegated.
-     */
-    function changeClaimDate(address _asset, uint256 _id, uint256 _claimDate) external {
-        bytes32 id = AssetLogic.assetId(_asset, _id);
-        _lockCreatorChecks(id);
-
-        if (_claimDate < block.timestamp) revert Errors.DelegationOwner__changeClaimDate_invalidClaimDate();
-
-        _checkClaimDate(id, _claimDate);
-
-        lockedAssets[id] = _claimDate;
-
-        emit ChangeClaimDate(_asset, _id, _claimDate, msg.sender);
-    }
-
-    /**
-     * @notice Sets an asset as unlocked.
-     * @param _asset - The locked asset addresses.
-     * @param _id - The locked asset id.
-     */
-    function unlockAsset(address _asset, uint256 _id) external {
-        bytes32 id = AssetLogic.assetId(_asset, _id);
-        _lockCreatorChecks(id);
-
-        lockedAssets[id] = 0;
-        lockedBy[id] = address(0);
-        guard.unlockAsset(_asset, _id);
-
-        emit UnlockedAsset(_asset, _id, msg.sender);
-    }
-
-    /**
-     * @notice Sends a locked asset to the `receiver`.
+     * @notice Sends a asset to the `receiver`.
      * @param _asset - The locked asset addresses.
      * @param _id - The locked asset id.
      * @param _receiver - The receiving address.
      */
-    function claimAsset(address _asset, uint256 _id, address _receiver) external {
+    function claimAsset(address _asset, uint256 _id, address _receiver) external onlyOwner {
         bytes32 id = AssetLogic.assetId(_asset, _id);
-        _lockCreatorChecks(id);
 
-        if (lockedAssets[id] > block.timestamp && _isAssetDelegated(id))
-            revert Errors.DelegationOwner__claimAsset_assetNotClaimable();
-
-        lockedAssets[id] = 0;
-        lockedBy[id] = address(0);
-        guard.unlockAsset(_asset, _id);
+        if (_isAssetDelegated(id)) revert Errors.DelegationOwner__claimAsset_assetNotClaimable();
+        if (guard.isLocked(id)) revert Errors.DelegationOwner__claimAsset_assetLocked();
 
         bool success = _transferAsset(_asset, _id, _receiver);
 
@@ -604,22 +538,23 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         return _isDelegating(signatureDelegation);
     }
 
-    function tokenIndex(address nftAsset, uint256 tokenId) external returns (bytes32) {
-        return AssetLogic.assetId(nftAsset, tokenId);
+    function assetId(address _asset, uint256 _id) external returns (bytes32) {
+        return AssetLogic.assetId(_asset, _id);
     }
 
     /**
      * @notice Function to deposit assets on the wallet
+     * @param _assets Array of structs that identifies the assets
      */
-    function deposit(AssetItem[] calldata assets) external {
-        uint256 cachedAssets = assets.length;
+    function depositAssets(AssetItem[] calldata _assets) external {
+        uint256 cachedAssets = _assets.length;
         for (uint256 i; i < cachedAssets; ) {
-            bool isAllowed = allowedControllers.isAllowedCollection(assets[i].nftAsset);
-            if (!isAllowed) revert Errors.Collection_notAllowed();
+            bool isAllowed = allowedControllers.isAllowedCollection(_assets[i].nftAsset);
+            if (!isAllowed) revert Errors.DelegationOwner__deposit_collectionNotAllowed();
 
-            IERC721(assets[i].nftAsset).safeTransferFrom(msg.sender, address(this), assets[i].nftTokenId);
+            IERC721(_assets[i].nftAsset).safeTransferFrom(msg.sender, address(this), _assets[i].nftTokenId);
             totalAssets = totalAssets + 1;
-            emit DepositAsset(assets[i].nftAsset, assets[i].nftTokenId);
+            emit DepositAsset(_assets[i].nftAsset, _assets[i].nftTokenId);
             unchecked {
                 ++i;
             }
@@ -627,22 +562,56 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     }
 
     function getLoanId(bytes32 index) external returns (uint256) {
-        return 1;
+        return loansIds[index];
     }
 
-    function setLoanId(bytes32 index, uint256 loanId) external onlyProtocol {
-        // PENDING
+    function setLoanId(bytes32 _index, uint256 _loanId) external onlyProtocol {
+        _setLoanId(_index, _loanId);
+        emit SetLoanId(_index, _loanId);
     }
 
-    function changeOwner(bytes32 index, address owner) external onlyProtocol {
-        // PENDING
+    function changeOwner(address _asset, uint256 _id, address _newOwner) external onlyProtocol {
+        bytes32 id = AssetLogic.assetId(_asset, _id);
+        Delegation storage delegation = delegations[id];
+
+        _setLoanId(id, 0);
+        delegation.to = 0;
+
+        bool success = _transferAsset(_asset, _id, _newOwner);
+        if (!success) revert Errors.DelegationOwner__changeOwner_notSuccess();
+
+        emit ChangeOwner(_asset, _id, msg.sender);
+
+        guard.setDelegationExpiry(_asset, _id, 0);
     }
 
-    function batchSetLoanId(address[] calldata nftAsset, uint256[] calldata id, uint256 loanId) external onlyProtocol {
-        // PENDING
+    function batchSetLoanId(
+        address[] calldata _assets,
+        uint256[] calldata _ids,
+        uint256 _loanId
+    ) external onlyProtocol {
+        uint256 cachedAssets = _assets.length;
+        if (cachedAssets != _ids.length && cachedAssets > 0)
+            revert Errors.DelegationOwner__batchSetLoanId_arityMismatch();
+
+        for (uint256 i; i < cachedAssets; ) {
+            bytes32 index = AssetLogic.assetId(_assets[i], _ids[i]);
+            _setLoanId(index, _loanId);
+        }
+        emit SetBatchLoanId(_assets, _ids, _loanId);
     }
 
     // ========== Internal functions ===========
+
+    function _setLoanId(bytes32 index, uint256 _loanId) internal {
+        loansIds[index] = _loanId;
+
+        if (_loanId == 0) {
+            guard.unlockAsset(index);
+        } else {
+            guard.lockAsset(index);
+        }
+    }
 
     function _setDelegationController(address _delegationController, bool _allowed) internal {
         if (_allowed && !allowedControllers.isAllowedDelegationController(_delegationController))
@@ -703,11 +672,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
             signatureDelegationAssetsIds[currentSignatureDelegationAssets].contains(_id) &&
             signatureDelegation.to > _claimDate
         ) revert Errors.DelegationOwner__checkClaimDate_signatureDelegatedLonger();
-    }
-
-    function _lockCreatorChecks(bytes32 _id) internal view {
-        if (lockedAssets[_id] == 0) revert Errors.DelegationOwner__lockCreatorChecks_assetNotLocked();
-        if (lockedBy[_id] != msg.sender) revert Errors.DelegationOwner__lockCreatorChecks_onlyLockCreator();
     }
 
     function _delegationCreatorChecks(Delegation storage _delegation) internal view {
