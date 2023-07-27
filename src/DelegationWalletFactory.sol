@@ -12,6 +12,7 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import { console } from "forge-std/console.sol";
 
 /**
  * @title DelegationWalletFactory
@@ -92,15 +93,20 @@ contract DelegationWalletFactory {
         address _delegationController,
         address _lockController
     ) public returns (address, address, address) {
+        console.log("DEPLOY FOR", singleton);
+        console.log("gnosisSafeProxyFactory", gnosisSafeProxyFactory);
         address safeProxy = address(
             GnosisSafeProxyFactory(gnosisSafeProxyFactory).createProxy(singleton, new bytes(0))
         );
-        address delegationOwnerProxy = address(new BeaconProxy(ownerBeacon, new bytes(0)));
 
+        console.log("SAFE", safeProxy);
+        address delegationOwnerProxy = address(new BeaconProxy(ownerBeacon, new bytes(0)));
+        console.log("DELEGATION OWNER PROXY", delegationOwnerProxy);
         address[] memory owners = new address[](2);
         owners[0] = _owner;
         owners[1] = delegationOwnerProxy;
-
+        console.log("OWNER 0", owners[0]);
+        console.log("OWNER 1", owners[1]);
         // setup owners and threshold, this should be done before delegationOwner.initialize because DelegationOwners
         // has to be an owner to be able to set the guard
         GnosisSafe(payable(safeProxy)).setup(

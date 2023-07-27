@@ -19,6 +19,7 @@ import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { console } from "forge-std/console.sol";
 
 contract Config is Test {
     bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
@@ -103,7 +104,7 @@ contract Config is Test {
         guardBeacon = address(new UpgradeableBeacon(delegationGuardImpl));
 
         delegationWalletRegistry = new DelegationWalletRegistry();
-
+        console.log("PRE FACTORY");
         delegationWalletFactory = new DelegationWalletFactory(
             gnosisSafeProxyFactory,
             gnosisSafeTemplate,
@@ -112,9 +113,9 @@ contract Config is Test {
             ownerBeacon,
             address(delegationWalletRegistry)
         );
-
+        console.log("FACTORY", address(delegationWalletFactory));
         delegationWalletRegistry.setFactory(address(delegationWalletFactory));
-
+        console.log("UPDATE FACTORY");
         vm.deal(kakaroto, 100 ether);
         vm.deal(karpincho, 100 ether);
         vm.deal(vegeta, 100 ether);
@@ -126,11 +127,14 @@ contract Config is Test {
         contracts[0] = address(testNftPlatform);
         selectors[0] = TestNftPlatform.allowedFunction.selector;
         descriptions[0] = "TestNftPlatform - allowedFunction";
+        console.log("ADD RECIPE0");
         delegationRecipes.add(address(testNft), contracts, selectors, descriptions);
 
         contracts[0] = address(testPunksPlatform);
         descriptions[0] = "TestPunksPlatform - allowedFunction";
+        console.log("ADD RECIPE1");
         delegationRecipes.add(address(testPunks), contracts, selectors, descriptions);
+        console.log("END SETUP");
     }
 
     function getSignature(bytes memory toSign, uint256 key) public pure returns (bytes memory) {
