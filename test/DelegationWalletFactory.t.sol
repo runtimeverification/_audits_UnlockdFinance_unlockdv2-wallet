@@ -12,10 +12,7 @@ import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/Upgradea
 contract DelegationWalletFactoryTest is Config {
     function setUp() public {
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(
-            delegationController,
-            nftfi
-        );
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(delegationController);
         safe = GnosisSafe(payable(safeProxy));
     }
 
@@ -35,15 +32,10 @@ contract DelegationWalletFactoryTest is Config {
         assertEq(address(DelegationOwner(delegationOwnerProxy).guard()), configuredGuard);
         assertEq(DelegationOwner(delegationOwnerProxy).safe(), safeProxy);
         assertTrue(DelegationOwner(delegationOwnerProxy).delegationControllers(delegationController));
-        assertTrue(DelegationOwner(delegationOwnerProxy).lockControllers(nftfi));
     }
 
     function test_depploy_should_work_with_zero_controllers() public {
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deployFor(
-            vegeta,
-            address(0),
-            address(0)
-        );
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deployFor(vegeta, address(0));
 
         assertEq(DelegationOwner(delegationOwnerProxy).owner(), vegeta);
     }

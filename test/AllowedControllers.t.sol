@@ -8,19 +8,9 @@ import { AllowedControllers, Errors } from "src/AllowedControllers.sol";
 import { Config } from "./utils/Config.sol";
 
 contract AllowedControllersTest is Config {
-    function setUp() public {}
-
-    function test_should_set_controllers_upon_creation(
-        address[] memory _lockControllers,
-        address[] memory _delegationControllers
-    ) public {
+    function test_should_set_controllers_upon_creation(address[] memory _delegationControllers) public {
         uint256 i;
-        for (i = 0; i < _lockControllers.length; ) {
-            vm.assume(_lockControllers[i] != address(0));
-            unchecked {
-                i++;
-            }
-        }
+
         for (i = 0; i < _delegationControllers.length; ) {
             vm.assume(_delegationControllers[i] != address(0));
             unchecked {
@@ -28,13 +18,7 @@ contract AllowedControllersTest is Config {
             }
         }
 
-        AllowedControllers allowed = new AllowedControllers(_lockControllers, _delegationControllers);
-        for (i = 0; i < _lockControllers.length; ) {
-            assertTrue(allowed.isAllowedLockController(_lockControllers[i]));
-            unchecked {
-                i++;
-            }
-        }
+        AllowedControllers allowed = new AllowedControllers(_delegationControllers);
 
         for (i = 0; i < _delegationControllers.length; ) {
             assertTrue(allowed.isAllowedDelegationController(_delegationControllers[i]));
@@ -44,70 +28,70 @@ contract AllowedControllersTest is Config {
         }
     }
 
-    function test_setLockControllerAllowance_onlyOwner() public {
-        vm.prank(karpincho);
-        vm.expectRevert("Ownable: caller is not the owner");
-        allowedControllers.setLockControllerAllowance(karpincho, true);
-    }
+    // function test_setLockControllerAllowance_onlyOwner() public {
+    //     vm.prank(karpincho);
+    //     vm.expectRevert("Ownable: caller is not the owner");
+    //     allowedControllers.setLockControllerAllowance(karpincho, true);
+    // }
 
-    function test_setLockControllerAllowance_invalidAddress() public {
-        vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowance_invalidAddress.selector);
-        allowedControllers.setLockControllerAllowance(address(0), true);
-    }
+    // function test_setLockControllerAllowance_invalidAddress() public {
+    //     vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowance_invalidAddress.selector);
+    //     allowedControllers.setLockControllerAllowance(address(0), true);
+    // }
 
-    function test_setLockControllerAllowance_should_work() public {
-        allowedControllers.setLockControllerAllowance(karpincho, true);
-        assertTrue(allowedControllers.isAllowedLockController(karpincho));
-        allowedControllers.setLockControllerAllowance(karpincho, false);
-        assertFalse(allowedControllers.isAllowedLockController(karpincho));
-    }
+    // function test_setLockControllerAllowance_should_work() public {
+    //     allowedControllers.setLockControllerAllowance(karpincho, true);
+    //     assertTrue(allowedControllers.isAllowedLockController(karpincho));
+    //     allowedControllers.setLockControllerAllowance(karpincho, false);
+    //     assertFalse(allowedControllers.isAllowedLockController(karpincho));
+    // }
 
-    function test_setLockControllerAllowances_onlyOwner() public {
-        address[] memory controllers = new address[](1);
-        controllers[0] = karpincho;
-        bool[] memory allowances = new bool[](1);
-        vm.prank(karpincho);
-        vm.expectRevert("Ownable: caller is not the owner");
-        allowedControllers.setLockControllerAllowances(controllers, allowances);
-    }
+    // function test_setLockControllerAllowances_onlyOwner() public {
+    //     address[] memory controllers = new address[](1);
+    //     controllers[0] = karpincho;
+    //     bool[] memory allowances = new bool[](1);
+    //     vm.prank(karpincho);
+    //     vm.expectRevert("Ownable: caller is not the owner");
+    //     allowedControllers.setLockControllerAllowances(controllers, allowances);
+    // }
 
-    function test_setLockControllerAllowances_arityMismatch() public {
-        address[] memory controllers = new address[](2);
-        controllers[0] = kakaroto;
-        controllers[1] = vegeta;
-        bool[] memory allowances = new bool[](1);
-        allowances[0] = true;
+    // function test_setLockControllerAllowances_arityMismatch() public {
+    //     address[] memory controllers = new address[](2);
+    //     controllers[0] = kakaroto;
+    //     controllers[1] = vegeta;
+    //     bool[] memory allowances = new bool[](1);
+    //     allowances[0] = true;
 
-        vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowances_arityMismatch.selector);
-        allowedControllers.setLockControllerAllowances(controllers, allowances);
-    }
+    //     vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowances_arityMismatch.selector);
+    //     allowedControllers.setLockControllerAllowances(controllers, allowances);
+    // }
 
-    function test_setLockControllerAllowances_invalidAddress() public {
-        address[] memory controllers = new address[](1);
-        controllers[0] = address(0);
-        bool[] memory allowances = new bool[](1);
-        allowances[0] = true;
-        vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowance_invalidAddress.selector);
-        allowedControllers.setLockControllerAllowances(controllers, allowances);
-    }
+    // function test_setLockControllerAllowances_invalidAddress() public {
+    //     address[] memory controllers = new address[](1);
+    //     controllers[0] = address(0);
+    //     bool[] memory allowances = new bool[](1);
+    //     allowances[0] = true;
+    //     vm.expectRevert(Errors.AllowedControllers__setLockControllerAllowance_invalidAddress.selector);
+    //     allowedControllers.setLockControllerAllowances(controllers, allowances);
+    // }
 
-    function test_setLockControllerAllowances_should_work() public {
-        address[] memory controllers = new address[](2);
-        controllers[0] = kakaroto;
-        controllers[1] = karpincho;
-        bool[] memory allowances = new bool[](2);
-        allowances[0] = true;
-        allowances[1] = true;
+    // function test_setLockControllerAllowances_should_work() public {
+    //     address[] memory controllers = new address[](2);
+    //     controllers[0] = kakaroto;
+    //     controllers[1] = karpincho;
+    //     bool[] memory allowances = new bool[](2);
+    //     allowances[0] = true;
+    //     allowances[1] = true;
 
-        allowedControllers.setLockControllerAllowances(controllers, allowances);
+    //     allowedControllers.setLockControllerAllowances(controllers, allowances);
 
-        for (uint256 i; i < controllers.length; ) {
-            assertEq(allowedControllers.isAllowedLockController(controllers[i]), allowances[i]);
-            unchecked {
-                i++;
-            }
-        }
-    }
+    //     for (uint256 i; i < controllers.length; ) {
+    //         assertEq(allowedControllers.isAllowedLockController(controllers[i]), allowances[i]);
+    //         unchecked {
+    //             i++;
+    //         }
+    //     }
+    // }
 
     ////
 

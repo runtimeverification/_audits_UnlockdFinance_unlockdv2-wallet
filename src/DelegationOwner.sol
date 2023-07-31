@@ -24,6 +24,8 @@ import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { ISignatureValidator } from "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
 
+import { console } from "forge-std/console.sol";
+
 /**
  * @title DelegationOwner
  * @author BootNode
@@ -170,7 +172,8 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     }
 
     modifier onlyProtocol() {
-        if (!aclManager.isBorrowManager(msg.sender)) revert Errors.Caller_notProtocol();
+        console.log("ONLY PROTOCOL: ", msg.sender);
+        if (!aclManager.isProtocolAdmin(msg.sender)) revert Errors.Caller_notProtocol();
         _;
     }
 
@@ -184,14 +187,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      */
     modifier onlyDelegationController() {
         if (!delegationControllers[msg.sender]) revert Errors.DelegationOwner__onlyDelegationController();
-        _;
-    }
-
-    /**
-     * @notice This modifier indicates that only the Lock Controller can execute a given function.
-     */
-    modifier onlyLockController() {
-        if (!lockControllers[msg.sender]) revert Errors.DelegationOwner__onlyLockController();
         _;
     }
 
@@ -212,14 +207,12 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      * @param _safe - The DelegationWallet address, the GnosisSafe.
      * @param _owner - The owner of the DelegationWallet.
      * @param _delegationController - The address that acts as the delegation controller.
-     * @param _lockController - The address that acts as the lock controller.
      */
     function initialize(
         address _guardBeacon,
         address _safe,
         address _owner,
-        address _delegationController,
-        address _lockController
+        address _delegationController
     ) public initializer {
         if (_guardBeacon == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
         if (_safe == address(0)) revert Errors.DelegationGuard__initialize_invalidSafe();
@@ -229,9 +222,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         owner = _owner;
         if (_delegationController != address(0)) {
             _setDelegationController(_delegationController, true);
-        }
-        if (_lockController != address(0)) {
-            _setLockController(_lockController, true);
         }
 
         address guardProxy = address(
@@ -249,15 +239,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      */
     function setDelegationController(address _delegationController, bool _allowed) external onlyGov {
         _setDelegationController(_delegationController, _allowed);
-    }
-
-    /**
-     * @notice Sets the lock controller address as allowed or not.
-     * @param _lockController - The new lock controller address.
-     * @param _allowed - Allowance status.
-     */
-    function setLockController(address _lockController, bool _allowed) external onlyGov {
-        _setLockController(_lockController, _allowed);
     }
 
     /**
@@ -538,27 +519,11 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         return _isDelegating(signatureDelegation);
     }
 
+    /**
+     * @notice Returns the hash of the NFTs.
+     */
     function assetId(address _asset, uint256 _id) external returns (bytes32) {
         return AssetLogic.assetId(_asset, _id);
-    }
-
-    /**
-     * @notice Function to deposit assets on the wallet
-     * @param _assets Array of structs that identifies the assets
-     */
-    function depositAssets(AssetItem[] calldata _assets) external {
-        uint256 cachedAssets = _assets.length;
-        for (uint256 i; i < cachedAssets; ) {
-            bool isAllowed = allowedControllers.isAllowedCollection(_assets[i].nftAsset);
-            if (!isAllowed) revert Errors.DelegationOwner__deposit_collectionNotAllowed();
-
-            IERC721(_assets[i].nftAsset).safeTransferFrom(msg.sender, address(this), _assets[i].nftTokenId);
-            totalAssets = totalAssets + 1;
-            emit DepositAsset(_assets[i].nftAsset, _assets[i].nftTokenId);
-            unchecked {
-                ++i;
-            }
-        }
     }
 
     function getLoanId(bytes32 index) external returns (uint256) {
@@ -580,7 +545,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         bool success = _transferAsset(_asset, _id, _newOwner);
         if (!success) revert Errors.DelegationOwner__changeOwner_notSuccess();
 
-        emit ChangeOwner(_asset, _id, msg.sender);
+        emit ChangeOwner(_asset, _id, _newOwner);
 
         guard.setDelegationExpiry(_asset, _id, 0);
     }
@@ -618,13 +583,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
             revert Errors.DelegationOwner__setDelegationController_notAllowedController();
         delegationControllers[_delegationController] = _allowed;
         emit SetDelegationController(_delegationController, _allowed);
-    }
-
-    function _setLockController(address _lockController, bool _allowed) internal {
-        if (_allowed && !allowedControllers.isAllowedLockController(_lockController))
-            revert Errors.DelegationOwner__setLockController_notAllowedController();
-        lockControllers[_lockController] = _allowed;
-        emit SetLockController(_lockController, _allowed);
     }
 
     function _isAssetDelegated(bytes32 _id) internal view returns (bool) {
@@ -797,21 +755,5 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
             revert Errors.DelegationOwner__transferAsset_assetNotOwned();
 
         return abi.encodeWithSelector(ICryptoPunks.transferPunk.selector, _receiver, _id);
-    }
-
-    function onERC721Received(
-        address _operator,
-        address _from,
-        uint256 tokenId,
-        bytes calldata data
-    ) public returns (bytes4) {
-        bool isAllowed = allowedControllers.isAllowedCollection(msg.sender);
-        if (!isAllowed) revert Errors.DelegationOwner__collectionNotAllowed();
-
-        totalAssets = totalAssets + 1;
-
-        emit DepositAsset(msg.sender, tokenId);
-
-        return this.onERC721Received.selector;
     }
 }

@@ -9,7 +9,7 @@
     "hh:build": "hardhat compile",
     "clean": "forge clean",
     "hh:clean": "hardhat clean",
-    "test:forge": "yarn forge test -vv --fork-url $ALCHEMY_RPC --fork-block-number $FORK_BLOCK --match-contract DelegationGuardPunksTest",
+    "test:forge": "yarn forge test -vv --fork-url $ALCHEMY_RPC --fork-block-number $FORK_BLOCK -vvvv --match-contract DelegationGuardPunksTest",
     "test:forge:all": "yarn forge test -vv --fork-url $ALCHEMY_RPC --fork-block-number $FORK_BLOCK --gas-report",
     "snapshot": "yarn forge snapshot --fork-url $ALCHEMY_RPC --fork-block-number $FORK_BLOCK",
     "coverage": "yarn forge coverage --fork-url $ALCHEMY_RPC --fork-block-number $FORK_BLOCK --report lcov",

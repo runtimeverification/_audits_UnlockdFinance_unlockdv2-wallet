@@ -12,14 +12,13 @@ import { DelegationWalletRegistry } from "src/DelegationWalletRegistry.sol";
 import { AllowedControllers } from "src/AllowedControllers.sol";
 import { TestNft } from "src/test/TestNft.sol";
 import { TestNftPlatform } from "src/test/TestNftPlatform.sol";
-
+import { IACLManager } from "src/interfaces/IACLManager.sol";
 import { ICryptoPunks } from "../../src/interfaces/ICryptoPunks.sol";
-
+import { ACLManager } from "../mocks/ACLManager.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { console } from "forge-std/console.sol";
 
 contract Config is Test {
     bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
@@ -36,20 +35,19 @@ contract Config is Test {
     uint256 public delegationControllerKey = 5;
     address public delegationController = vm.addr(delegationControllerKey);
 
-    uint256 public nftfiKey = 6;
-    address public nftfi = vm.addr(nftfiKey);
-
     bytes4 public constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
     bytes4 public constant UPDATED_MAGIC_VALUE = 0x1626ba7e;
 
     address public gnosisSafeTemplate = 0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552; // 4854169
     address public gnosisSafeProxyFactory = 0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2; // 4695402
     address public compatibilityFallbackHandler = 0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4; // 4854164
-
+    uint256 public forkBlock = 17785165;
     TestNft public testNft;
     ICryptoPunks public testPunks;
     TestNftPlatform public testNftPlatform;
     TestNftPlatform public testPunksPlatform;
+
+    IACLManager public aclManager;
 
     address public delegationOwnerImpl;
     address public delegationGuardImpl;
@@ -78,20 +76,38 @@ contract Config is Test {
     uint256 public constant safeProxyPunkId2 = 409;
 
     constructor() {
+        // Fork mainnet
+        uint256 mainnetFork = vm.createFork("mainnet", forkBlock);
+        vm.selectFork(mainnetFork);
+
+        vm.startPrank(kakaroto);
+        aclManager = new ACLManager(kakaroto);
+
+        // Configure ADMINS
+
+        aclManager.addProtocolAdmin(kakaroto);
+        aclManager.addGovernanceAdmin(kakaroto);
+        aclManager.addUpdaterAdmin(kakaroto);
+        aclManager.addEmergencyAdmin(kakaroto);
+        vm.stopPrank();
         testNft = new TestNft();
         testPunks = ICryptoPunks(0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB);
         testNftPlatform = new TestNftPlatform(address(testNft));
         testPunksPlatform = new TestNftPlatform(address(testPunks));
 
-        lockControllers.push(nftfi);
         delegationControllers.push(delegationController);
 
         delegationRecipes = new DelegationRecipes();
-        allowedControllers = new AllowedControllers(lockControllers, delegationControllers);
+        allowedControllers = new AllowedControllers(delegationControllers);
 
         // DelegationOwner implementation
         delegationOwnerImpl = address(
-            new DelegationOwner(address(testPunks), address(delegationRecipes), address(allowedControllers), address(0))
+            new DelegationOwner(
+                address(testPunks),
+                address(delegationRecipes),
+                address(allowedControllers),
+                address(aclManager)
+            )
         );
 
         // DelegationGuard implementation
@@ -104,7 +120,6 @@ contract Config is Test {
         guardBeacon = address(new UpgradeableBeacon(delegationGuardImpl));
 
         delegationWalletRegistry = new DelegationWalletRegistry();
-        console.log("PRE FACTORY");
         delegationWalletFactory = new DelegationWalletFactory(
             gnosisSafeProxyFactory,
             gnosisSafeTemplate,
@@ -113,9 +128,7 @@ contract Config is Test {
             ownerBeacon,
             address(delegationWalletRegistry)
         );
-        console.log("FACTORY", address(delegationWalletFactory));
         delegationWalletRegistry.setFactory(address(delegationWalletFactory));
-        console.log("UPDATE FACTORY");
         vm.deal(kakaroto, 100 ether);
         vm.deal(karpincho, 100 ether);
         vm.deal(vegeta, 100 ether);
@@ -127,14 +140,11 @@ contract Config is Test {
         contracts[0] = address(testNftPlatform);
         selectors[0] = TestNftPlatform.allowedFunction.selector;
         descriptions[0] = "TestNftPlatform - allowedFunction";
-        console.log("ADD RECIPE0");
         delegationRecipes.add(address(testNft), contracts, selectors, descriptions);
 
         contracts[0] = address(testPunksPlatform);
         descriptions[0] = "TestPunksPlatform - allowedFunction";
-        console.log("ADD RECIPE1");
         delegationRecipes.add(address(testPunks), contracts, selectors, descriptions);
-        console.log("END SETUP");
     }
 
     function getSignature(bytes memory toSign, uint256 key) public pure returns (bytes memory) {

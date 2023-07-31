@@ -20,33 +20,19 @@ contract AllowedControllers is IAllowedControllers, Ownable {
 
     /**
      * @notice A mapping from a controllers address to whether that address is allowed to be used by a DelegationWallet
-     * as a lock controller.
-     */
-    mapping(address => bool) private allowedLockControllers;
-
-    /**
-     * @notice A mapping from a controllers address to whether that address is allowed to be used by a DelegationWallet
      * as a delegation controller.
      */
     mapping(address => bool) private allowedDelegationControllers;
 
     /**
-     * @notice Initialize `allowedLockControllers` and  `allowedDelegationControllers` with a batch of allowed
+     * @notice Initialize `allowedDelegationControllers` with a batch of allowed
      * controllers.
      *
-     * @param _lockControllers - The batch of lock controller addresses initially allowed.
+   
      * @param _delegationControllers - The batch of delegation controller addresses initially allowed.
      */
-    constructor(address[] memory _lockControllers, address[] memory _delegationControllers) {
-        uint256 length = _lockControllers.length;
-        for (uint256 i; i < length; ) {
-            _setLockControllerAllowance(_lockControllers[i], true);
-            unchecked {
-                ++i;
-            }
-        }
-
-        length = _delegationControllers.length;
+    constructor(address[] memory _delegationControllers) {
+        uint256 length = _delegationControllers.length;
         for (uint256 j; j < length; ) {
             _setDelegationControllerAllowance(_delegationControllers[j], true);
             unchecked {
@@ -79,40 +65,6 @@ contract AllowedControllers is IAllowedControllers, Ownable {
         uint256 length = _collections.length;
         for (uint256 i; i < length; ) {
             _setCollectionAllowance(_collections[i], _allowances[i]);
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    /**
-     * @notice This function can be called by admins to change the allowance status of a lock controller. This includes
-     * both adding a controller to the allowed list and removing it.
-     *
-     * @param _controller - The address of the controller whose allowance list status changed.
-     * @param _allowed - The new status of whether the controller is allowed or not.
-     */
-    function setLockControllerAllowance(address _controller, bool _allowed) external onlyOwner {
-        _setLockControllerAllowance(_controller, _allowed);
-    }
-
-    /**
-     * @notice This function can be called by admins to change the permitted status of a batch of lock controllers. This
-     * both adding a controller to the allowed list and removing it.
-     *
-     * @param _controllers - The addresses of the controllers whose allowance list status changed.
-     * @param _allowances - The new statuses of whether the controller is allowed or not.
-     */
-    function setLockControllerAllowances(
-        address[] calldata _controllers,
-        bool[] calldata _allowances
-    ) external onlyOwner {
-        if (_controllers.length != _allowances.length)
-            revert Errors.AllowedControllers__setLockControllerAllowances_arityMismatch();
-
-        uint256 length = _controllers.length;
-        for (uint256 i; i < length; ) {
-            _setLockControllerAllowance(_controllers[i], _allowances[i]);
             unchecked {
                 ++i;
             }
@@ -164,15 +116,6 @@ contract AllowedControllers is IAllowedControllers, Ownable {
     }
 
     /**
-     * @notice Checks if an address is an allowed lock controller.
-     *
-     * @param _controller - The address of the controller.
-     */
-    function isAllowedLockController(address _controller) external view returns (bool) {
-        return allowedLockControllers[_controller];
-    }
-
-    /**
      * @notice Checks if an address is an allowed delegation controller.
      *
      * @param _controller - The address of the controller.
@@ -194,22 +137,6 @@ contract AllowedControllers is IAllowedControllers, Ownable {
         allowedCollections[_collection] = _allowed;
 
         emit Collections(_collection, _allowed);
-    }
-
-    /**
-     * @notice Changes the allowance status of an lock controller. This includes both adding a controller to the
-     * allowed list and removing it.
-     *
-     * @param _lockController - The address of the controller whose allowance list status changed.
-     * @param _allowed - The new status of whether the controller is allowed or not.
-     */
-    function _setLockControllerAllowance(address _lockController, bool _allowed) internal {
-        if (_lockController == address(0))
-            revert Errors.AllowedControllers__setLockControllerAllowance_invalidAddress();
-
-        allowedLockControllers[_lockController] = _allowed;
-
-        emit LockController(_lockController, _allowed);
     }
 
     /**

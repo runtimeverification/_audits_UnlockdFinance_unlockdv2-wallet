@@ -8,3 +8,6 @@ libs = ['lib']
 gas_reports = ['DelegationGuard', 'DelegationOwner', 'DelegationRecipes', 'DelegationWalletFactory', 'DelegationWalletRegistry']
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
+
+[rpc_endpoints]
+mainnet = "${RPC_MAINNET}" 

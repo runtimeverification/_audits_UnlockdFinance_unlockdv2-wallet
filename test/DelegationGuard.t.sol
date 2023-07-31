@@ -23,10 +23,7 @@ contract DelegationGuardTest is Config {
 
     function setUp() public {
         vm.prank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(
-            delegationController,
-            nftfi
-        );
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(delegationController);
 
         safe = GnosisSafe(payable(safeProxy));
         delegationOwner = DelegationOwner(delegationOwnerProxy);
@@ -56,13 +53,13 @@ contract DelegationGuardTest is Config {
         delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
     }
 
-    // function test_setDelegationExpiries_should_work() public {
-    //     vm.prank(delegationOwnerProxy);
-    //     delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
+    function test_setDelegationExpiries_should_work() public {
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
 
-    //     assertEq(delegationGuard.getExpiry(address(testNft), safeProxyNftId), expiry);
-    //     assertEq(delegationGuard.getExpiry(address(testNft), safeProxyNftId2), expiry);
-    // }
+        assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId)), expiry);
+        assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId2)), expiry);
+    }
 
     //setDelegationExpiry
     function test_setDelegationExpiry_onlyDelegationOwner() public {
@@ -70,43 +67,12 @@ contract DelegationGuardTest is Config {
         delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
     }
 
-    // function test_setDelegationExpiry_should_work() public {
-    //     vm.prank(delegationOwnerProxy);
-    //     delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+    function test_setDelegationExpiry_should_work() public {
+        vm.prank(delegationOwnerProxy);
+        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
 
-    //     assertEq(delegationGuard.getExpiry(address(testNft), safeProxyNftId), expiry);
-    // }
-
-    //lockAsset
-    // function test_lockAsset_onlyDelegationOwner() public {
-    //     vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
-    //     delegationGuard.lockAsset(address(testNft), safeProxyNftId);
-    // }
-
-    // function test_lockAsset_should_work() public {
-    //     vm.prank(delegationOwnerProxy);
-    //     delegationGuard.lockAsset(address(testNft), safeProxyNftId);
-
-    //     assertTrue(delegationGuard.isLocked(address(testNft), safeProxyNftId));
-    // }
-
-    //unlockAsset
-    // function test_unlockAsset_onlyDelegationOwner() public {
-    //     vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
-    //     delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
-    // }
-
-    // function test_unlockAsset_should_work() public {
-    //     vm.prank(delegationOwnerProxy);
-    //     delegationGuard.lockAsset(address(testNft), safeProxyNftId);
-
-    //     assertTrue(delegationGuard.isLocked(address(testNft), safeProxyNftId));
-
-    //     vm.prank(delegationOwnerProxy);
-    //     delegationGuard.unlockAsset(address(testNft), safeProxyNftId);
-
-    //     assertFalse(delegationGuard.isLocked(address(testNft), safeProxyNftId));
-    // }
+        assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId)), expiry);
+    }
 
     // _checkLocked
     function test_owner_can_not_execute_a_delegatecall_operation() public {

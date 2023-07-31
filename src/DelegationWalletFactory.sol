@@ -12,7 +12,6 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
-import { console } from "forge-std/console.sol";
 
 /**
  * @title DelegationWalletFactory
@@ -77,36 +76,26 @@ contract DelegationWalletFactory {
     /**
      * @notice Deploys a new DelegationWallet with the msg.sender as the owner.
      */
-    function deploy(
-        address _delegationController,
-        address _lockController
-    ) external returns (address, address, address) {
-        return deployFor(msg.sender, _delegationController, _lockController);
+    function deploy(address _delegationController) external returns (address, address, address) {
+        return deployFor(msg.sender, _delegationController);
     }
 
     /**
      * @notice Deploys a new DelegationWallet for a given owner.
      * @param _owner - The owner's address.
+     * @param _delegationController - Delegation controller owner
      */
-    function deployFor(
-        address _owner,
-        address _delegationController,
-        address _lockController
-    ) public returns (address, address, address) {
-        console.log("DEPLOY FOR", singleton);
-        console.log("gnosisSafeProxyFactory", gnosisSafeProxyFactory);
+    function deployFor(address _owner, address _delegationController) public returns (address, address, address) {
         address safeProxy = address(
             GnosisSafeProxyFactory(gnosisSafeProxyFactory).createProxy(singleton, new bytes(0))
         );
 
-        console.log("SAFE", safeProxy);
         address delegationOwnerProxy = address(new BeaconProxy(ownerBeacon, new bytes(0)));
-        console.log("DELEGATION OWNER PROXY", delegationOwnerProxy);
+
         address[] memory owners = new address[](2);
         owners[0] = _owner;
         owners[1] = delegationOwnerProxy;
-        console.log("OWNER 0", owners[0]);
-        console.log("OWNER 1", owners[1]);
+
         // setup owners and threshold, this should be done before delegationOwner.initialize because DelegationOwners
         // has to be an owner to be able to set the guard
         GnosisSafe(payable(safeProxy)).setup(
@@ -121,7 +110,7 @@ contract DelegationWalletFactory {
         );
 
         DelegationOwner delegationOwner = DelegationOwner(delegationOwnerProxy);
-        delegationOwner.initialize(guardBeacon, address(safeProxy), _owner, _delegationController, _lockController);
+        delegationOwner.initialize(guardBeacon, address(safeProxy), _owner, _delegationController);
         address delegationGuard = address(delegationOwner.guard());
 
         IDelegationWalletRegistry(registry).setWallet(safeProxy, _owner, delegationOwnerProxy, delegationGuard);
