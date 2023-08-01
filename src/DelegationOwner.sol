@@ -23,6 +23,7 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { ISignatureValidator } from "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
+import { DataTypes } from "./types/DataTypes.sol";
 
 import { console } from "forge-std/console.sol";
 
@@ -119,11 +120,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         uint256[] ids;
     }
 
-    struct AssetItem {
-        address nftAsset;
-        uint256 nftTokenId;
-    }
-
     /**
      * @notice List of assets and ids affected by last signatureDelegation. This is used mainly when ending the
      * signature delegation to  be able to set the expiry of each asset on the guard. Using EnumerableSet.values from
@@ -172,8 +168,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     }
 
     modifier onlyProtocol() {
-        console.log("ONLY PROTOCOL: ", msg.sender);
-        if (!aclManager.isProtocolAdmin(msg.sender)) revert Errors.Caller_notProtocol();
+        if (!aclManager.isProtocol(msg.sender)) revert Errors.Caller_notProtocol();
         _;
     }
 
@@ -496,11 +491,10 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
 
     /**
      * @notice Returns if an asset is locked.
-     * @param _asset - The asset addresses.
      * @param _id - The asset id.
      */
-    function isAssetLocked(address _asset, uint256 _id) external view returns (bool) {
-        return guard.isLocked(AssetLogic.assetId(_asset, _id));
+    function isAssetLocked(bytes32 _id) external view returns (bool) {
+        return guard.isLocked(_id);
     }
 
     /**
@@ -550,20 +544,13 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         guard.setDelegationExpiry(_asset, _id, 0);
     }
 
-    function batchSetLoanId(
-        address[] calldata _assets,
-        uint256[] calldata _ids,
-        uint256 _loanId
-    ) external onlyProtocol {
+    function batchSetLoanId(DataTypes.AssetIndex[] calldata _assets, uint256 _loanId) external onlyProtocol {
         uint256 cachedAssets = _assets.length;
-        if (cachedAssets != _ids.length && cachedAssets > 0)
-            revert Errors.DelegationOwner__batchSetLoanId_arityMismatch();
 
         for (uint256 i; i < cachedAssets; ) {
-            bytes32 index = AssetLogic.assetId(_assets[i], _ids[i]);
-            _setLoanId(index, _loanId);
+            _setLoanId(_assets[i].index, _loanId);
         }
-        emit SetBatchLoanId(_assets, _ids, _loanId);
+        emit SetBatchLoanId(cachedAssets, _loanId);
     }
 
     // ========== Internal functions ===========
