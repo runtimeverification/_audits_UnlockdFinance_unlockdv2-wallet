@@ -9,20 +9,17 @@ import { IACLManager } from "../../src/interfaces/IACLManager.sol";
  * @author Unlockd
  * @notice Access Control List Manager. Main registry of system roles and permissions.
  */
+
 contract ACLManager is AccessControl, IACLManager {
-    // @dev address of the PROTOCOL
-    address internal UNLOCK_PROTOCOL;
-    // @dev utoken admin in charge of updating the utoken
     bytes32 public constant override UTOKEN_ADMIN = keccak256("UTOKEN_ADMIN");
-    // @dev protocol admin in charge of updating the protocol
     bytes32 public constant override PROTOCOL_ADMIN = keccak256("PROTOCOL_ADMIN");
-    // @dev update the prices of the oracle
+    bytes32 public constant override UPDATER_ADMIN = keccak256("UPDATER_ADMIN");
+
+    bytes32 public constant override BORROW_MANAGER = keccak256("BORROW_MANAGER");
     bytes32 public constant override PRICE_UPDATER = keccak256("PRICE_UPDATER");
-    // @dev check if the loans are healty and creates the auction
-    bytes32 public constant override AUCTION_ADMIN = keccak256("AUCTION_ADMIN");
-    // @dev block the pools and the protocol in case of a emergency
+
     bytes32 public constant override EMERGENCY_ADMIN = keccak256("EMERGENCY_ADMIN");
-    // @dev modify the configuration of the protocol
+    bytes32 public constant override RISK_ADMIN = keccak256("RISK_ADMIN");
     bytes32 public constant override GOVERNANCE_ADMIN = keccak256("GOVERNANCE_ADMIN");
 
     /**
@@ -31,23 +28,13 @@ contract ACLManager is AccessControl, IACLManager {
      * @param aclAdmin address of the general admin
      */
     constructor(address aclAdmin) {
-        require(aclAdmin != address(0), "ACL_ADMIN_CANNOT_BE_ZERO");
+        require(aclAdmin != address(0), "ADMIN CANNOT BE ZERO");
         _setupRole(DEFAULT_ADMIN_ROLE, aclAdmin);
     }
 
     /// @inheritdoc IACLManager
     function setRoleAdmin(bytes32 role, bytes32 adminRole) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoleAdmin(role, adminRole);
-    }
-
-    /// @inheritdoc IACLManager
-    function setProtocol(address protocol) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-        UNLOCK_PROTOCOL = protocol;
-    }
-
-    /// @inheritdoc IACLManager
-    function isProtocol(address protocol) external view override returns (bool) {
-        return UNLOCK_PROTOCOL == protocol;
     }
 
     /// @inheritdoc IACLManager
@@ -81,6 +68,21 @@ contract ACLManager is AccessControl, IACLManager {
     }
 
     /// @inheritdoc IACLManager
+    function addUpdaterAdmin(address updater) external override {
+        grantRole(UPDATER_ADMIN, updater);
+    }
+
+    /// @inheritdoc IACLManager
+    function removeUpdaterAdmin(address updater) external override {
+        revokeRole(UPDATER_ADMIN, updater);
+    }
+
+    /// @inheritdoc IACLManager
+    function isUpdaterAdmin(address updater) external view override returns (bool) {
+        return hasRole(UPDATER_ADMIN, updater);
+    }
+
+    /// @inheritdoc IACLManager
     function addEmergencyAdmin(address admin) external override {
         grantRole(EMERGENCY_ADMIN, admin);
     }
@@ -93,6 +95,36 @@ contract ACLManager is AccessControl, IACLManager {
     /// @inheritdoc IACLManager
     function isEmergencyAdmin(address admin) external view override returns (bool) {
         return hasRole(EMERGENCY_ADMIN, admin);
+    }
+
+    /// @inheritdoc IACLManager
+    function addRiskAdmin(address admin) external override {
+        grantRole(RISK_ADMIN, admin);
+    }
+
+    /// @inheritdoc IACLManager
+    function removeRiskAdmin(address admin) external override {
+        revokeRole(RISK_ADMIN, admin);
+    }
+
+    /// @inheritdoc IACLManager
+    function isRiskAdmin(address admin) external view override returns (bool) {
+        return hasRole(RISK_ADMIN, admin);
+    }
+
+    /// @inheritdoc IACLManager
+    function addBorrowManager(address admin) external override {
+        grantRole(BORROW_MANAGER, admin);
+    }
+
+    /// @inheritdoc IACLManager
+    function removeBorrowManager(address admin) external override {
+        revokeRole(BORROW_MANAGER, admin);
+    }
+
+    /// @inheritdoc IACLManager
+    function isBorrowManager(address admin) external view override returns (bool) {
+        return hasRole(BORROW_MANAGER, admin);
     }
 
     /// @inheritdoc IACLManager

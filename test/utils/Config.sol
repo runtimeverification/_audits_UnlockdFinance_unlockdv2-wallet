@@ -84,9 +84,10 @@ contract Config is Test {
         aclManager = new ACLManager(kakaroto);
 
         // Configure ADMINS
-        aclManager.setProtocol(kakaroto);
+
         aclManager.addProtocolAdmin(kakaroto);
         aclManager.addGovernanceAdmin(kakaroto);
+        aclManager.addUpdaterAdmin(kakaroto);
         aclManager.addEmergencyAdmin(kakaroto);
         vm.stopPrank();
         testNft = new TestNft();

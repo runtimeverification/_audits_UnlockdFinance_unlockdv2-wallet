@@ -22,16 +22,10 @@ interface IACLManager is IAccessControl {
     function PROTOCOL_ADMIN() external view returns (bytes32);
 
     /**
-     * @notice Returns the identifier of the PriceUpdater role
-     * @return The id of the PriceUpdater role
+     * @notice Returns the identifier of the Updater Admin role
+     * @return The id of the Updater Admin role
      */
-    function PRICE_UPDATER() external view returns (bytes32);
-
-    /**
-     * @notice Returns the identifier of the EmergencyAdmin role
-     * @return The id of the EmergencyAdmin role
-     */
-    function AUCTION_ADMIN() external view returns (bytes32);
+    function UPDATER_ADMIN() external view returns (bytes32);
 
     /**
      * @notice Returns the identifier of the EmergencyAdmin role
@@ -40,24 +34,28 @@ interface IACLManager is IAccessControl {
     function EMERGENCY_ADMIN() external view returns (bytes32);
 
     /**
+     * @notice Returns the identifier of the RiskAdmin role
+     * @return The id of the RiskAdmin role
+     */
+    function RISK_ADMIN() external view returns (bytes32);
+
+    /**
+     * @notice Returns the identifier of the Borrow Manager role
+     * @return The id of the Borrow Manager role
+     */
+    function BORROW_MANAGER() external view returns (bytes32);
+
+    /**
+     * @notice Returns the identifier of the PriceUpdater role
+     * @return The id of the PriceUpdater role
+     */
+    function PRICE_UPDATER() external view returns (bytes32);
+
+    /**
      * @notice Returns the identifier of the Governance Admin role
      * @return The id of the PriceUpdater role
      */
     function GOVERNANCE_ADMIN() external view returns (bytes32);
-
-    /**
-     * @notice Set the address of the protocol
-     * @dev Is the main address of the protocol.Only can be updated by the ADMIN.
-     * @param protocol address of the protocol
-     */
-    function setProtocol(address protocol) external;
-
-    /**
-     * @notice Returns true if the address is the protocol, false otherwise
-     * @param protocol The address to check
-     * @return True if the given address is the protocol, false otherwise
-     */
-    function isProtocol(address protocol) external view returns (bool);
 
     /**
      * @notice Set the role as admin of a specific role.
@@ -107,6 +105,26 @@ interface IACLManager is IAccessControl {
      */
     function isProtocolAdmin(address admin) external view returns (bool);
 
+    // UPDATER
+    /**
+     * @notice Adds a new admin as  Protocol Admin
+     * @param admin The address of the new admin
+     */
+    function addUpdaterAdmin(address admin) external;
+
+    /**
+     * @notice Removes an admin as  Protocol Admin
+     * @param admin The address of the admin to remove
+     */
+    function removeUpdaterAdmin(address admin) external;
+
+    /**
+     * @notice Returns true if the address is Protocol Admin, false otherwise
+     * @param admin The address to check
+     * @return True if the given address is  Protocol Admin, false otherwise
+     */
+    function isUpdaterAdmin(address admin) external view returns (bool);
+
     // EMERGENCY
     /**
      * @notice Adds a new admin as EmergencyAdmin
@@ -126,6 +144,46 @@ interface IACLManager is IAccessControl {
      * @return True if the given address is EmergencyAdmin, false otherwise
      */
     function isEmergencyAdmin(address admin) external view returns (bool);
+
+    // RICK ADMIN
+    /**
+     * @notice Adds a new admin as RiskAdmin
+     * @param admin The address of the new admin
+     */
+    function addRiskAdmin(address admin) external;
+
+    /**
+     * @notice Removes an admin as RiskAdmin
+     * @param admin The address of the admin to remove
+     */
+    function removeRiskAdmin(address admin) external;
+
+    /**
+     * @notice Returns true if the address is RiskAdmin, false otherwise
+     * @param admin The address to check
+     * @return True if the given address is RiskAdmin, false otherwise
+     */
+    function isRiskAdmin(address admin) external view returns (bool);
+
+    // BORROW
+    /**
+     * @notice Adds a new admin as  Borrow Manager
+     * @param admin The address of the new admin
+     */
+    function addBorrowManager(address admin) external;
+
+    /**
+     * @notice Removes an admin as  Borrow Manager
+     * @param admin The address of the admin to remove
+     */
+    function removeBorrowManager(address admin) external;
+
+    /**
+     * @notice Returns true if the address is Borrow Manager, false otherwise
+     * @param admin The address to check
+     * @return True if the given address is  Borrow Manager, false otherwise
+     */
+    function isBorrowManager(address admin) external view returns (bool);
 
     // PRICE UPDATER
     /**
