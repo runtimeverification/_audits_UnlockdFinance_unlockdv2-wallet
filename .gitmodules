@@ -13,3 +13,6 @@
 [submodule "lib/chainlink"]
 	path = lib/chainlink
 	url = https://github.com/smartcontractkit/chainlink
+[submodule "lib/unlockdv2-wallet"]
+	path = lib/unlockdv2-wallet
+	url = https://github.com/UnlockdFinance/unlockdv2-wallet
