@@ -579,7 +579,7 @@ contract DelegationOwnerTest is Config {
 
         bytes32 id = delegationOwner.assetId(address(testNft), safeProxyNftId);
 
-        delegationOwner.setLoanId(id, 100); // Lock
+        delegationOwner.setLoanId(id, keccak256(abi.encode(100))); // Lock
 
         vm.expectRevert(Errors.DelegationOwner__claimAsset_assetLocked.selector);
         delegationOwner.claimAsset(address(testNft), safeProxyNftId, karpincho);

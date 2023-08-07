@@ -23,7 +23,6 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { ISignatureValidator } from "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
-import { DataTypes } from "./types/DataTypes.sol";
 
 /**
  * @title DelegationOwner
@@ -87,7 +86,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     /**
      * @notice Relation between the assetId and the loanId
      */
-    mapping(bytes32 => uint256) loansIds;
+    mapping(bytes32 => bytes32) loansIds;
 
     /**
      * @notice The DelegationGuard address.
@@ -518,11 +517,11 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         return AssetLogic.assetId(_asset, _id);
     }
 
-    function getLoanId(bytes32 index) external returns (uint256) {
+    function getLoanId(bytes32 index) external returns (bytes32) {
         return loansIds[index];
     }
 
-    function setLoanId(bytes32 _index, uint256 _loanId) external onlyProtocol {
+    function setLoanId(bytes32 _index, bytes32 _loanId) external onlyProtocol {
         _setLoanId(_index, _loanId);
         emit SetLoanId(_index, _loanId);
     }
@@ -542,24 +541,24 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         guard.setDelegationExpiry(_asset, _id, 0);
     }
 
-    function batchSetLoanId(DataTypes.AssetIndex[] calldata _assets, uint256 _loanId) external onlyProtocol {
+    function batchSetLoanId(bytes32[] calldata _assets, bytes32 _loanId) external onlyProtocol {
         uint256 cachedAssets = _assets.length;
 
         for (uint256 i; i < cachedAssets; ) {
-            _setLoanId(_assets[i].index, _loanId);
+            _setLoanId(_assets[i], _loanId);
         }
-        emit SetBatchLoanId(cachedAssets, _loanId);
+        emit SetBatchLoanId(_assets, _loanId);
     }
 
     // ========== Internal functions ===========
 
-    function _setLoanId(bytes32 index, uint256 _loanId) internal {
-        loansIds[index] = _loanId;
+    function _setLoanId(bytes32 _assetId, bytes32 _loanId) internal {
+        loansIds[_assetId] = _loanId;
 
         if (_loanId == 0) {
-            guard.unlockAsset(index);
+            guard.unlockAsset(_assetId);
         } else {
-            guard.lockAsset(index);
+            guard.lockAsset(_assetId);
         }
     }
 

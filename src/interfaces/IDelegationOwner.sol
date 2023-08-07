@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity 0.8.19;
-import { DataTypes } from "../types/DataTypes.sol";
 
 interface IDelegationOwner {
     event SetDelegationController(address indexed delegationController, bool allowed);
@@ -38,8 +37,8 @@ interface IDelegationOwner {
 
     event DepositAsset(address indexed collection, uint256 indexed tokenId);
 
-    event SetLoanId(bytes32 index, uint256 loanId);
-    event SetBatchLoanId(uint256 indexed amountOfAssets, uint256 indexed loanId);
+    event SetLoanId(bytes32 index, bytes32 loanId);
+    event SetBatchLoanId(bytes32[] indexed assets, bytes32 indexed loanId);
 
     // Delegation Controller Functions
     function delegate(address _asset, uint256 _assetId, address _delegatee, uint256 _duration) external;
@@ -79,11 +78,11 @@ interface IDelegationOwner {
 
     function isSignatureDelegated() external view returns (bool);
 
-    function batchSetLoanId(DataTypes.AssetIndex[] calldata _assets, uint256 loanId) external;
+    function batchSetLoanId(bytes32[] calldata _assets, bytes32 _loanId) external;
 
     function changeOwner(address _asset, uint256 _id, address _newOwner) external;
 
-    function getLoanId(bytes32 index) external returns (uint256);
+    function getLoanId(bytes32 _assetId) external returns (bytes32);
 
-    function setLoanId(bytes32 index, uint256 loanId) external;
+    function setLoanId(bytes32 _assetId, bytes32 _loanId) external;
 }

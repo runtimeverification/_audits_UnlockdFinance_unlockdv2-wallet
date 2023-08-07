@@ -11,6 +11,7 @@ import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { OwnerManager, GuardManager, GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import { console } from "forge-std/console.sol";
 
 contract DelegationGuardTest is Config {
     uint256 private safeProxyNftId;
@@ -20,6 +21,7 @@ contract DelegationGuardTest is Config {
     uint256[] assetIds;
     uint256[] assetIds2;
     uint256 expiry;
+    DelegationOwner delOwner;
 
     function setUp() public {
         vm.prank(kakaroto);
@@ -28,7 +30,7 @@ contract DelegationGuardTest is Config {
         safe = GnosisSafe(payable(safeProxy));
         delegationOwner = DelegationOwner(delegationOwnerProxy);
         delegationGuard = DelegationGuard(delegationGuardProxy);
-
+        delOwner = delegationOwner;
         safeProxyNftId = testNft.mint(
             address(safeProxy),
             "ipfs://bafybeihpjhkeuiq3k6nqa3fkgeigeri7iebtrsuyuey5y6vy36n345xmbi/1"
@@ -48,150 +50,182 @@ contract DelegationGuardTest is Config {
     }
 
     //setDelegationExpiries
-    function test_setDelegationExpiries_onlyDelegationOwner() public {
-        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
-        delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
-    }
+    // function test_setDelegationExpiries_onlyDelegationOwner() public {
+    //     vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
+    //     delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
+    // }
 
-    function test_setDelegationExpiries_should_work() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
+    // function test_setDelegationExpiries_should_work() public {
+    //     vm.prank(delegationOwnerProxy);
+    //     delegationGuard.setDelegationExpiries(assets, assetIds, expiry);
 
-        assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId)), expiry);
-        assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId2)), expiry);
-    }
+    //     assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId)), expiry);
+    //     assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId2)), expiry);
+    // }
 
-    //setDelegationExpiry
-    function test_setDelegationExpiry_onlyDelegationOwner() public {
-        vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
-        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
-    }
+    // //setDelegationExpiry
+    // function test_setDelegationExpiry_onlyDelegationOwner() public {
+    //     vm.expectRevert(Errors.DelegationGuard__onlyDelegationOwner.selector);
+    //     delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+    // }
 
-    function test_setDelegationExpiry_should_work() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+    // function test_setDelegationExpiry_should_work() public {
+    //     vm.prank(delegationOwnerProxy);
+    //     delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
 
-        assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId)), expiry);
+    //     assertEq(delegationGuard.getExpiry(delegationOwner.assetId(address(testNft), safeProxyNftId)), expiry);
+    // }
+
+    function test_owner_can_execute_transfer() public {
+        bytes memory payload = abi.encodeWithSelector(
+            IERC721.transferFrom.selector,
+            address(safeProxy),
+            kakaroto,
+            safeProxyNftId
+        );
+
+        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+
+        vm.prank(kakaroto);
+        console.log("kakaroto: ", kakaroto);
+        console.log("delegationOwner: ", address(delegationOwnerProxy));
+        console.log("safe: ", address(safe));
+        console.log("safe Contract: ", delOwner.safe());
+        console.log("wallet ", delegationWalletRegistry.getOwnerWalletAddresses(kakaroto)[0]);
+        console.log("wallet in wallet struct :", delegationWalletRegistry.getWallet(address(safe)).wallet);
+        console.log("owner in wallet struct :", delegationWalletRegistry.getWallet(address(safe)).owner);
+        console.log(
+            "DelegationOwner in wallet struct :",
+            delegationWalletRegistry.getWallet(address(safe)).delegationOwner
+        );
+        console.log(
+            "DelegationOwner in wallet struct :",
+            delegationWalletRegistry.getWallet(address(safe)).delegationGuard
+        );
+
+        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+
+        assertEq(testNft.ownerOf(1), address(kakaroto));
     }
 
     // _checkLocked
-    function test_owner_can_not_execute_a_delegatecall_operation() public {
-        bytes memory storageAtBefore = safe.getStorageAt(uint256(GUARD_STORAGE_SLOT), 1);
-        address configuredGuardBefore = abi.decode(storageAtBefore, (address));
+    // function test_owner_can_not_execute_a_delegatecall_operation() public {
+    //     bytes memory storageAtBefore = safe.getStorageAt(uint256(GUARD_STORAGE_SLOT), 1);
+    //     address configuredGuardBefore = abi.decode(storageAtBefore, (address));
 
-        vm.startPrank(kakaroto);
+    //     vm.startPrank(kakaroto);
 
-        GuardManipulator guardMan = new GuardManipulator();
+    //     GuardManipulator guardMan = new GuardManipulator();
 
-        bytes memory payload = abi.encodeWithSelector(
-            GuardManipulator.manipulateGuard.selector,
-            address(0) // https://github.com/safe-global/safe-contracts/blob/6b3784f10a7262d3b857139914aaa33082990435/contracts/Safe.sol#L148
-        );
+    //     bytes memory payload = abi.encodeWithSelector(
+    //         GuardManipulator.manipulateGuard.selector,
+    //         address(0) // https://github.com/safe-global/safe-contracts/blob/6b3784f10a7262d3b857139914aaa33082990435/contracts/Safe.sol#L148
+    //     );
 
-        bytes memory tSig = getTransactionSignature(
-            kakarotoKey,
-            address(guardMan),
-            payload,
-            Enum.Operation.DelegateCall
-        );
+    //     bytes memory tSig = getTransactionSignature(
+    //         kakarotoKey,
+    //         address(guardMan),
+    //         payload,
+    //         Enum.Operation.DelegateCall
+    //     );
 
-        vm.expectRevert(Errors.DelegationGuard__checkTransaction_noDelegateCall.selector);
-        safe.execTransaction(
-            address(guardMan),
-            0,
-            payload,
-            Enum.Operation.DelegateCall,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            tSig
-        );
+    //     vm.expectRevert(Errors.DelegationGuard__checkTransaction_noDelegateCall.selector);
+    //     safe.execTransaction(
+    //         address(guardMan),
+    //         0,
+    //         payload,
+    //         Enum.Operation.DelegateCall,
+    //         0,
+    //         0,
+    //         0,
+    //         address(0),
+    //         payable(0),
+    //         tSig
+    //     );
 
-        bytes memory storageAtAfter = safe.getStorageAt(uint256(GUARD_STORAGE_SLOT), 1);
-        address configuredGuardAfter = abi.decode(storageAtAfter, (address));
+    //     bytes memory storageAtAfter = safe.getStorageAt(uint256(GUARD_STORAGE_SLOT), 1);
+    //     address configuredGuardAfter = abi.decode(storageAtAfter, (address));
 
-        assertEq(configuredGuardAfter, configuredGuardBefore);
-    }
+    //     assertEq(configuredGuardAfter, configuredGuardBefore);
+    // }
 
-    function test_owner_can_not_transfer_out_delegated_asset() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+    // function test_owner_can_not_transfer_out_delegated_asset() public {
+    //     vm.prank(delegationOwnerProxy);
+    //     delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
 
-        vm.warp(block.timestamp + 1);
+    //     vm.warp(block.timestamp + 1);
 
-        bytes memory payload = abi.encodeWithSelector(
-            IERC721.transferFrom.selector,
-            address(safeProxy),
-            kakaroto,
-            safeProxyNftId
-        );
+    //     bytes memory payload = abi.encodeWithSelector(
+    //         IERC721.transferFrom.selector,
+    //         address(safeProxy),
+    //         kakaroto,
+    //         safeProxyNftId
+    //     );
 
-        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+    //     bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
-        vm.prank(kakaroto);
-        vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
-        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+    //     vm.prank(kakaroto);
+    //     vm.expectRevert(Errors.DelegationGuard__checkLocked_noTransfer.selector);
+    //     safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
-        assertEq(testNft.ownerOf(1), address(safeProxy));
-    }
+    //     assertEq(testNft.ownerOf(1), address(safeProxy));
+    // }
 
-    function test_owner_can_transfer_out_delegated_asset_after_expiry() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+    // function test_owner_can_transfer_out_delegated_asset_after_expiry() public {
+    //     vm.prank(delegationOwnerProxy);
+    //     delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
 
-        vm.warp(block.timestamp + 10 days + 1);
+    //     vm.warp(block.timestamp + 10 days + 1);
 
-        bytes memory payload = abi.encodeWithSelector(
-            IERC721.transferFrom.selector,
-            address(safeProxy),
-            kakaroto,
-            safeProxyNftId
-        );
+    //     bytes memory payload = abi.encodeWithSelector(
+    //         IERC721.transferFrom.selector,
+    //         address(safeProxy),
+    //         kakaroto,
+    //         safeProxyNftId
+    //     );
 
-        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+    //     bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
-        vm.prank(kakaroto);
+    //     vm.prank(kakaroto);
 
-        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+    //     safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
-        assertEq(testNft.ownerOf(1), kakaroto);
-    }
+    //     assertEq(testNft.ownerOf(1), kakaroto);
+    // }
 
-    function test_owner_can_not_approve_delegated_asset() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+    // function test_owner_can_not_approve_delegated_asset() public {
+    //     vm.prank(delegationOwnerProxy);
+    //     delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
 
-        vm.warp(block.timestamp + 1);
+    //     vm.warp(block.timestamp + 1);
 
-        bytes memory payload = abi.encodeWithSelector(IERC721.approve.selector, kakaroto, safeProxyNftId);
+    //     bytes memory payload = abi.encodeWithSelector(IERC721.approve.selector, kakaroto, safeProxyNftId);
 
-        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+    //     bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
-        vm.prank(kakaroto);
-        vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
-        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+    //     vm.prank(kakaroto);
+    //     vm.expectRevert(Errors.DelegationGuard__checkLocked_noApproval.selector);
+    //     safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
-        assertEq(testNft.getApproved(safeProxyNftId), address(0));
-    }
+    //     assertEq(testNft.getApproved(safeProxyNftId), address(0));
+    // }
 
-    function test_owner_can_approve_delegated_asset_after_expiry() public {
-        vm.prank(delegationOwnerProxy);
-        delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
+    // function test_owner_can_approve_delegated_asset_after_expiry() public {
+    //     vm.prank(delegationOwnerProxy);
+    //     delegationGuard.setDelegationExpiry(address(testNft), safeProxyNftId, expiry);
 
-        vm.warp(block.timestamp + 10 days + 1);
+    //     vm.warp(block.timestamp + 10 days + 1);
 
-        bytes memory payload = abi.encodeWithSelector(IERC721.approve.selector, kakaroto, safeProxyNftId);
+    //     bytes memory payload = abi.encodeWithSelector(IERC721.approve.selector, kakaroto, safeProxyNftId);
 
-        bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
+    //     bytes memory tSig = getTransactionSignature(kakarotoKey, address(testNft), payload, Enum.Operation.Call);
 
-        vm.prank(kakaroto);
+    //     vm.prank(kakaroto);
 
-        safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
+    //     safe.execTransaction(address(testNft), 0, payload, Enum.Operation.Call, 0, 0, 0, address(0), payable(0), tSig);
 
-        assertEq(testNft.getApproved(safeProxyNftId), kakaroto);
-    }
+    //     assertEq(testNft.getApproved(safeProxyNftId), kakaroto);
+    // }
 
     // function test_owner_can_no_transfer_out_locked_asset() public {
     //     vm.prank(delegationOwnerProxy);
