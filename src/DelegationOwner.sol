@@ -513,11 +513,11 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     /**
      * @notice Returns the hash of the NFTs.
      */
-    function assetId(address _asset, uint256 _id) external returns (bytes32) {
+    function assetId(address _asset, uint256 _id) external pure returns (bytes32) {
         return AssetLogic.assetId(_asset, _id);
     }
 
-    function getLoanId(bytes32 index) external returns (bytes32) {
+    function getLoanId(bytes32 index) external view returns (bytes32) {
         return loansIds[index];
     }
 
@@ -543,9 +543,11 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
 
     function batchSetLoanId(bytes32[] calldata _assets, bytes32 _loanId) external onlyProtocol {
         uint256 cachedAssets = _assets.length;
-
-        for (uint256 i; i < cachedAssets; ) {
+        for (uint256 i = 0; i < cachedAssets; ) {
             _setLoanId(_assets[i], _loanId);
+            unchecked {
+                i++;
+            }
         }
         emit SetBatchLoanId(_assets, _loanId);
     }
