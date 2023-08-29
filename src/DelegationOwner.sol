@@ -541,9 +541,22 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         guard.setDelegationExpiry(_asset, _id, 0);
     }
 
+    function batchUnlockAssets(bytes32[] calldata _assets) external onlyProtocol {
+        uint256 cachedAssets = _assets.length;
+        for (uint256 i = 0; i < cachedAssets; ) {
+            if (loansIds[_assets[i]] == 0) revert Errors.DelegationOwner__assetNotLocked();
+            _setLoanId(_assets[i], 0);
+            unchecked {
+                i++;
+            }
+        }
+        emit SetBatchLoanId(_assets, 0);
+    }
+
     function batchSetLoanId(bytes32[] calldata _assets, bytes32 _loanId) external onlyProtocol {
         uint256 cachedAssets = _assets.length;
         for (uint256 i = 0; i < cachedAssets; ) {
+            if (loansIds[_assets[i]] != 0) revert Errors.DelegationOwner__assetAlreadyLocked();
             _setLoanId(_assets[i], _loanId);
             unchecked {
                 i++;

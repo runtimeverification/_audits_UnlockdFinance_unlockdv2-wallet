@@ -17,6 +17,8 @@ library Errors {
     error DelegationGuard__initialize_invalidSafe();
     error DelegationGuard__initialize_invalidOwner();
 
+    error DelegationOwner__assetNotLocked();
+    error DelegationOwner__assetAlreadyLocked();
     error DelegationOwner__collectionNotAllowed();
     error DelegationOwner__onlyOwner();
     error DelegationOwner__onlyDelegationController();
