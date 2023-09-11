@@ -5,7 +5,7 @@ library Errors {
     // ========== General ===========
     error Caller_notProtocol();
     error Caller_notGovernanceAdmin();
-
+    error Caller_notAdmin();
     // ========== Delegation Recipes ===========
     error DelegationRecipes__add_arityMismatch();
     error DelegationRecipes__remove_arityMismatch();

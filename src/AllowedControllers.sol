@@ -32,7 +32,7 @@ contract AllowedControllers is IAllowedControllers {
     //  Modifiers
     ////////////////////////////////////////
     modifier onlyAdmin() {
-        if (!aclManager.isProtocolAdmin(msg.sender)) revert Errors.Caller_notOwner();
+        if (!aclManager.isProtocolAdmin(msg.sender)) revert Errors.Caller_notAdmin();
         _;
     }
 
