@@ -3,7 +3,6 @@
 pragma solidity 0.8.19;
 
 interface IAllowedControllers {
-    // ========== Events ===========
     event Collections(address indexed collections, bool isAllowed);
 
     event DelegationController(address indexed delegationController, bool isAllowed);

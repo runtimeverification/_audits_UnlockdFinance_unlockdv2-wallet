@@ -517,19 +517,30 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         return AssetLogic.assetId(_asset, _id);
     }
 
+    /**
+     * @notice Return the LoanId asigned to a asset
+     *  < 0 means the asset is locked
+     */
     function getLoanId(bytes32 index) external view returns (bytes32) {
         return loansIds[index];
     }
 
+    /**
+     * @notice set loan id assigned to a especific assetId
+     */
     function setLoanId(bytes32 _index, bytes32 _loanId) external onlyProtocol {
         _setLoanId(_index, _loanId);
         emit SetLoanId(_index, _loanId);
     }
 
+    /**
+     * @notice change the current ownership of a asset
+     */
     function changeOwner(address _asset, uint256 _id, address _newOwner) external onlyProtocol {
         bytes32 id = AssetLogic.assetId(_asset, _id);
         Delegation storage delegation = delegations[id];
 
+        // By default we assign to 0
         _setLoanId(id, 0);
         delegation.to = 0;
 
@@ -541,6 +552,9 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         guard.setDelegationExpiry(_asset, _id, 0);
     }
 
+    /**
+     * @notice batch function to set to 0 a group of assets
+     */
     function batchSetZeoLoanId(bytes32[] calldata _assets) external onlyProtocol {
         uint256 cachedAssets = _assets.length;
         for (uint256 i = 0; i < cachedAssets; ) {
@@ -553,6 +567,9 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         emit SetBatchLoanId(_assets, 0);
     }
 
+    /**
+     * @notice batch function to set to differnt from 0 a group of assets
+     */
     function batchSetLoanId(bytes32[] calldata _assets, bytes32 _loanId) external onlyProtocol {
         uint256 cachedAssets = _assets.length;
         for (uint256 i = 0; i < cachedAssets; ) {

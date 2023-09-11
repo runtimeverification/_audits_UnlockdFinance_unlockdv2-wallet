@@ -46,7 +46,6 @@ contract DelegationWalletFactory {
      */
     address public immutable registry;
 
-    // ========== Events ===========
     event WalletDeployed(
         address indexed safe,
         address indexed owner,
@@ -54,8 +53,6 @@ contract DelegationWalletFactory {
         address delegationGuard,
         address sender
     );
-
-    // ========== Custom Errors ===========
 
     constructor(
         address _gnosisSafeProxyFactory,

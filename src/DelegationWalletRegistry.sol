@@ -32,9 +32,10 @@ contract DelegationWalletRegistry is IDelegationWalletRegistry, Ownable {
      */
     address public delegationWalletFactory;
 
-    // ========== Events ===========
+    ////////////////////////////////////////////
+    //  Modifiers
+    ////////////////////////////////////////////
 
-    // ========== Modifiers ===========
     /**
      * @notice This modifier indicates that only the DelegationWalletFactory can execute a given function.
      */
@@ -44,7 +45,9 @@ contract DelegationWalletRegistry is IDelegationWalletRegistry, Ownable {
         _;
     }
 
-    // ========== External functions ===========
+    ////////////////////////////////////////////
+    //  External functions
+    ////////////////////////////////////////////
 
     /**
      * @notice Sets the DelegationWalletFactory address.

@@ -22,12 +22,9 @@ contract DelegationRecipes is Ownable {
     // keccak256(collection, contract, selector) -> description
     mapping(bytes32 => string) public functionDescriptions;
 
-    // ========== Events ===========
     event AddRecipe(address indexed collection, address[] contracts, bytes4[] selectors, string[] description);
 
     event RemoveRecipe(address indexed collection, address[] contracts, bytes4[] selectors);
-
-    // ========== Events ===========
 
     /**
      * @notice Adds a group of allowed functions to a collection.

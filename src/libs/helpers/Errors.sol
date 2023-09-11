@@ -33,7 +33,6 @@ library Errors {
     error DelegationOwner__delegate_assetLocked();
 
     error DelegationOwner__deposit_collectionNotAllowed();
-    // error DelegationOwner__delegateSignature_invalidExpiry(address asset, uint256 id);
     error DelegationOwner__delegateSignature_invalidArity();
     error DelegationOwner__delegateSignature_currentlyDelegated();
     error DelegationOwner__delegateSignature_invalidDelegatee();
