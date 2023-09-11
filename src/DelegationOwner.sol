@@ -541,7 +541,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         guard.setDelegationExpiry(_asset, _id, 0);
     }
 
-    function batchUnlockdLoanId(bytes32[] calldata _assets) external onlyProtocol {
+    function batchSetZeoLoanId(bytes32[] calldata _assets) external onlyProtocol {
         uint256 cachedAssets = _assets.length;
         for (uint256 i = 0; i < cachedAssets; ) {
             if (loansIds[_assets[i]] == 0) revert Errors.DelegationOwner__assetNotLocked();
@@ -565,7 +565,9 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         emit SetBatchLoanId(_assets, _loanId);
     }
 
-    // ========== Internal functions ===========
+    //////////////////////////////////////////////
+    //       Internal functions
+    //////////////////////////////////////////////
 
     function _setLoanId(bytes32 _assetId, bytes32 _loanId) internal {
         loansIds[_assetId] = _loanId;
