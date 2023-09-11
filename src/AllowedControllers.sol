@@ -3,15 +3,15 @@
 pragma solidity 0.8.19;
 
 import { Errors } from "./libs/helpers/Errors.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IAllowedControllers } from "./interfaces/IAllowedControllers.sol";
+import { IACLManager } from "./interfaces/IACLManager.sol";
 
 /**
  * @title AllowedController
  * @author BootNode
  * @dev Registry for allowed addresses to be used as lock or delegation controllers in a DelegationWallet.
  */
-contract AllowedControllers is IAllowedControllers, Ownable {
+contract AllowedControllers is IAllowedControllers {
     /**
      * @notice A mapping from a collections address
      */
@@ -24,13 +24,37 @@ contract AllowedControllers is IAllowedControllers, Ownable {
     mapping(address => bool) private allowedDelegationControllers;
 
     /**
+     * @notice AclManager instance
+     */
+    IACLManager public immutable aclManager;
+
+    ////////////////////////////////////////
+    //  Modifiers
+    ////////////////////////////////////////
+    modifier onlyAdmin() {
+        if (!aclManager.isProtocolAdmin(msg.sender)) revert Errors.Caller_notOwner();
+        _;
+    }
+
+    modifier onlyProtocol() {
+        if (!aclManager.isProtocol(msg.sender)) revert Errors.Caller_notProtocol();
+        _;
+    }
+
+    modifier onlyGov() {
+        if (!aclManager.isGovernanceAdmin(msg.sender)) revert Errors.Caller_notGovernanceAdmin();
+        _;
+    }
+
+    /**
      * @notice Initialize `allowedDelegationControllers` with a batch of allowed
      * controllers.
      *
-   
+     * @param _aclManager Address of the ACL manager
      * @param _delegationControllers - The batch of delegation controller addresses initially allowed.
      */
-    constructor(address[] memory _delegationControllers) {
+    constructor(address _aclManager, address[] memory _delegationControllers) {
+        aclManager = IACLManager(_aclManager);
         uint256 length = _delegationControllers.length;
         for (uint256 j; j < length; ) {
             _setDelegationControllerAllowance(_delegationControllers[j], true);
@@ -40,14 +64,16 @@ contract AllowedControllers is IAllowedControllers, Ownable {
         }
     }
 
-    // ========== External functions ===========
+    ////////////////////////////////////////
+    //  External Function
+    ////////////////////////////////////////
     /**
      * @notice This function can be called by admins to change the allowance status of all the collections.
      *
      * @param _collection - The address of the collection.
      * @param _allowed - The new status of the collection.
      */
-    function setCollectionAllowance(address _collection, bool _allowed) external onlyOwner {
+    function setCollectionAllowance(address _collection, bool _allowed) external onlyGov {
         _setCollectionAllowance(_collection, _allowed);
     }
 
@@ -57,7 +83,7 @@ contract AllowedControllers is IAllowedControllers, Ownable {
      * @param _collections - The addresses of the collections.
      * @param _allowances - The new addresses of the collections.
      */
-    function setCollectionsAllowances(address[] calldata _collections, bool[] calldata _allowances) external onlyOwner {
+    function setCollectionsAllowances(address[] calldata _collections, bool[] calldata _allowances) external onlyGov {
         if (_collections.length != _allowances.length)
             revert Errors.AllowedCollections__setCollectionsAllowances_arityMismatch();
 
@@ -77,7 +103,7 @@ contract AllowedControllers is IAllowedControllers, Ownable {
      * @param _controller - The address of the controller whose allowance list status changed.
      * @param _allowed - The new status of whether the controller is allowed or not.
      */
-    function setDelegationControllerAllowance(address _controller, bool _allowed) external onlyOwner {
+    function setDelegationControllerAllowance(address _controller, bool _allowed) external onlyAdmin {
         _setDelegationControllerAllowance(_controller, _allowed);
     }
 
@@ -91,7 +117,7 @@ contract AllowedControllers is IAllowedControllers, Ownable {
     function setDelegationControllerAllowances(
         address[] calldata _controllers,
         bool[] calldata _allowances
-    ) external onlyOwner {
+    ) external onlyAdmin {
         if (_controllers.length != _allowances.length)
             revert Errors.AllowedControllers__setDelegationControllerAllowances_arityMismatch();
 
