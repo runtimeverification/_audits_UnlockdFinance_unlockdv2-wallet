@@ -80,7 +80,7 @@ interface IDelegationOwner {
 
     function batchSetLoanId(bytes32[] calldata _assets, bytes32 _loanId) external;
 
-    function batchSetZeoLoanId(bytes32[] calldata _assets) external;
+    function batchSetToZeroLoanId(bytes32[] calldata _assets) external;
 
     function changeOwner(address _asset, uint256 _id, address _newOwner) external;
 

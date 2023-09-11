@@ -555,7 +555,7 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     /**
      * @notice batch function to set to 0 a group of assets
      */
-    function batchSetZeoLoanId(bytes32[] calldata _assets) external onlyProtocol {
+    function batchSetToZeroLoanId(bytes32[] calldata _assets) external onlyProtocol {
         uint256 cachedAssets = _assets.length;
         for (uint256 i = 0; i < cachedAssets; ) {
             if (loansIds[_assets[i]] == 0) revert Errors.DelegationOwner__assetNotLocked();
