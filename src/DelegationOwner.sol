@@ -591,8 +591,9 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         address _sellAdapter,
         bytes32 _loanId
     ) external onlyProtocol {
-        if (loansIds[_assets[i]] != _loanId) revert Errors.DelegationOwner__wrongLoanId();
-
+        if (loansIds[AssetLogic.assetId(_collection, _tokenId)] != _loanId) {
+            revert Errors.DelegationOwner__wrongLoanId();
+        }
         // Asset approval to the adapter to perform the sell
         _approveAsset(_collection, _tokenId, _sellAdapter);
         // Approval of the ERC20 to repay the debs
