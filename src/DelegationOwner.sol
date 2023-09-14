@@ -589,12 +589,10 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         address _underlyingAsset,
         uint256 _amount,
         address _sellAdapter,
-        bool _checkLocked
+        bytes32 _loanId
     ) external onlyProtocol {
-        if (_checkLocked) {
-            if (guard.isLocked(AssetLogic.assetId(_collection, _tokenId)) == false)
-                revert Errors.DelegationOwner__assetNotLocked();
-        }
+        if (loansIds[_assets[i]] != _loanId) revert Errors.DelegationOwner__wrongLoanId();
+
         // Asset approval to the adapter to perform the sell
         _approveAsset(_collection, _tokenId, _sellAdapter);
         // Approval of the ERC20 to repay the debs

@@ -94,6 +94,6 @@ interface IDelegationOwner {
         address _underlyingAsset,
         uint256 _amount,
         address _saleAdapter,
-        bool _checkLocked
+        bytes32 _loanId
     ) external;
 }

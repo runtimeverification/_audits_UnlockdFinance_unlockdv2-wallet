@@ -18,6 +18,7 @@ library Errors {
     error DelegationGuard__initialize_invalidOwner();
 
     error DelegationOwner__assetNotLocked();
+    error DelegationOwner__wrongLoanId();
     error DelegationOwner__assetAlreadyLocked();
     error DelegationOwner__collectionNotAllowed();
     error DelegationOwner__onlyOwner();
