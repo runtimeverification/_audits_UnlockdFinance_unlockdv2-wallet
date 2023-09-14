@@ -93,6 +93,7 @@ interface IDelegationOwner {
         uint256 _tokenId,
         address _underlyingAsset,
         uint256 _amount,
-        address _saleAdapter
+        address _saleAdapter,
+        bool _checkLocked
     ) external;
 }

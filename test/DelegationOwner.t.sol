@@ -60,7 +60,7 @@ contract DelegationOwnerTest is Config {
         vm.startPrank(kakaroto);
 
         // WE approve the transfers
-        delegationOwner.approveSale(address(testNft), safeProxyNftId, address(token), 1000, address(adapter));
+        delegationOwner.approveSale(address(testNft), safeProxyNftId, address(token), 1000, address(adapter), false);
         adapter.sell(address(testNft), safeProxyNftId, address(safeProxy));
         assertEq(testNft.balanceOf(address(safeProxy)), 0);
         assertEq(token.balanceOf(address(safeProxy)), 1000);
@@ -98,7 +98,7 @@ contract DelegationOwnerTest is Config {
     function test_setDelegationController_should_allow_to_unset_non_allowed_controller() public {
         vm.prank(kakaroto);
         delegationOwner.setDelegationController(karpincho, true);
-
+        vm.prank(kakaroto);
         allowedControllers.setDelegationControllerAllowance(karpincho, false);
 
         vm.prank(kakaroto);
