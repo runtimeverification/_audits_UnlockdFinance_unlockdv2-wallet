@@ -11,7 +11,7 @@ import { IACLManager } from "../../src/interfaces/IACLManager.sol";
  */
 contract ACLManager is AccessControl, IACLManager {
     // @dev address of the PROTOCOL
-    address internal UNLOCK_PROTOCOL;
+    address public UNLOCK_PROTOCOL;
     // @dev utoken admin in charge of updating the utoken
     bytes32 public constant override UTOKEN_ADMIN = keccak256("UTOKEN_ADMIN");
     // @dev protocol admin in charge of updating the protocol

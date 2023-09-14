@@ -18,7 +18,7 @@ contract AllowedControllersTest is Config {
             }
         }
 
-        AllowedControllers allowed = new AllowedControllers(_delegationControllers);
+        AllowedControllers allowed = new AllowedControllers(address(aclManager), _delegationControllers);
 
         for (i = 0; i < _delegationControllers.length; ) {
             assertTrue(allowed.isAllowedDelegationController(_delegationControllers[i]));

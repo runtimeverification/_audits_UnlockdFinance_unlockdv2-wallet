@@ -15,6 +15,8 @@ import { TestNftPlatform } from "src/test/TestNftPlatform.sol";
 import { IACLManager } from "src/interfaces/IACLManager.sol";
 import { ICryptoPunks } from "../../src/interfaces/ICryptoPunks.sol";
 import { ACLManager } from "../mocks/ACLManager.sol";
+import { TokenERC20 } from "../mocks/TokenERC20.sol";
+
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
@@ -46,7 +48,7 @@ contract Config is Test {
     ICryptoPunks public testPunks;
     TestNftPlatform public testNftPlatform;
     TestNftPlatform public testPunksPlatform;
-
+    TokenERC20 public token;
     IACLManager public aclManager;
 
     address public delegationOwnerImpl;
@@ -91,6 +93,7 @@ contract Config is Test {
         aclManager.addEmergencyAdmin(kakaroto);
         vm.stopPrank();
         testNft = new TestNft();
+        token = new TokenERC20();
         testPunks = ICryptoPunks(0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB);
         testNftPlatform = new TestNftPlatform(address(testNft));
         testPunksPlatform = new TestNftPlatform(address(testPunks));
@@ -98,7 +101,7 @@ contract Config is Test {
         delegationControllers.push(delegationController);
 
         delegationRecipes = new DelegationRecipes();
-        allowedControllers = new AllowedControllers(delegationControllers);
+        allowedControllers = new AllowedControllers(address(aclManager), delegationControllers);
 
         // DelegationOwner implementation
         delegationOwnerImpl = address(

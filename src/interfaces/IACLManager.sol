@@ -9,6 +9,8 @@ import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.so
  * @notice Defines the basic interface for the ACL Manager
  */
 interface IACLManager is IAccessControl {
+    function UNLOCK_PROTOCOL() external view returns (address);
+
     /**
      * @notice Returns the identifier of the UtokenAdmin role
      * @return The id of the UtokenAdmin role

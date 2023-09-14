@@ -5,6 +5,7 @@ pragma solidity 0.8.19;
 import "forge-std/Test.sol";
 
 import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, TestNftPlatform, Config, Errors } from "./utils/Config.sol";
+import { Adapter } from "./mocks/Adapter.sol";
 
 import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
 import { AssetLogic } from "../src/libs/logic/AssetLogic.sol";
@@ -14,6 +15,8 @@ import { GuardManager, GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/Gn
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
+import { console } from "forge-std/console.sol";
+
 contract DelegationOwnerTest is Config {
     event ExecutionSuccess(bytes32 txHash, uint256 payment);
     uint256 private safeProxyNftId;
@@ -21,9 +24,10 @@ contract DelegationOwnerTest is Config {
     address[] assets;
     uint256[] assetIds;
     TestNft public testNft2;
+    Adapter private adapter;
 
     function setUp() public {
-        vm.prank(kakaroto);
+        vm.startPrank(kakaroto);
         (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(delegationController);
 
         safe = GnosisSafe(payable(safeProxy));
@@ -40,8 +44,27 @@ contract DelegationOwnerTest is Config {
         assetIds.push(safeProxyNftId);
 
         testNft2 = new TestNft();
-
+        aclManager.addProtocolAdmin(kakaroto);
         allowedControllers.setDelegationControllerAllowance(karpincho, true);
+
+        adapter = new Adapter(address(token));
+        token.mint(address(adapter), 1000);
+        vm.stopPrank();
+    }
+
+    function test_sell_approval() public {
+        vm.assume(testNft.balanceOf(address(safeProxy)) == 1);
+        vm.assume(token.balanceOf(address(adapter)) == 1000);
+        vm.assume(token.balanceOf(address(safeProxy)) == 0);
+
+        vm.startPrank(kakaroto);
+
+        // WE approve the transfers
+        delegationOwner.approveSale(address(testNft), safeProxyNftId, address(token), 1000, address(adapter));
+        adapter.sell(address(testNft), safeProxyNftId, address(safeProxy));
+        assertEq(testNft.balanceOf(address(safeProxy)), 0);
+        assertEq(token.balanceOf(address(safeProxy)), 1000);
+        vm.stopPrank();
     }
 
     function test_setDelegationController_onlyOwner() public {

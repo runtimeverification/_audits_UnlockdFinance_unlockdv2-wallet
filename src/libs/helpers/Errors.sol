@@ -59,6 +59,7 @@ library Errors {
 
     error DelegationOwner__changeOwner_notSuccess();
     error DelegationOwner__transferAsset_assetNotOwned();
+    error DelegationOwner__approveAsset_assetNotOwned();
 
     error DelegationOwner__checkOwnedAndNotApproved_assetNotOwned();
     error DelegationOwner__checkOwnedAndNotApproved_assetApproved();

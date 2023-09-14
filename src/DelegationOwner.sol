@@ -10,6 +10,7 @@ import { DelegationGuard } from "./DelegationGuard.sol";
 import { DelegationRecipes } from "./DelegationRecipes.sol";
 
 import { AssetLogic } from "./libs/logic/AssetLogic.sol";
+import { SafeLogic } from "./libs/logic/SafeLogic.sol";
 import { Errors } from "./libs/helpers/Errors.sol";
 
 import { IDelegationOwner } from "./interfaces/IDelegationOwner.sol";
@@ -582,6 +583,19 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         emit SetBatchLoanId(_assets, _loanId);
     }
 
+    function approveSale(
+        address _collection,
+        uint256 _tokenId,
+        address _underlyingAsset,
+        uint256 _amount,
+        address _sellAdapter
+    ) external onlyProtocol {
+        // Asset approval to the adapter to perform the sell
+        _approveAsset(_collection, _tokenId, _sellAdapter);
+        // Approval of the ERC20 to repay the debs
+        _approveERC20(_underlyingAsset, _amount, msg.sender);
+    }
+
     //////////////////////////////////////////////
     //       Internal functions
     //////////////////////////////////////////////
@@ -707,8 +721,8 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      */
     function _transferAsset(address _asset, uint256 _id, address _receiver) internal returns (bool) {
         bytes memory payload = _asset == cryptoPunks
-            ? _transferPunksPayload(_asset, _id, _receiver)
-            : _transferERC721Payload(_asset, _id, _receiver);
+            ? SafeLogic._transferPunksPayload(_asset, _id, _receiver, safe)
+            : SafeLogic._transferERC721Payload(_asset, _id, _receiver, safe);
 
         isExecuting = true;
         currentTxHash = IGnosisSafe(payable(safe)).getTransactionHash(
@@ -752,26 +766,101 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         return success;
     }
 
-    function _transferERC721Payload(
-        address _asset,
-        uint256 _id,
-        address _receiver
-    ) internal view returns (bytes memory) {
-        // safe should be owner
-        if (IERC721(_asset).ownerOf(_id) != safe) revert Errors.DelegationOwner__transferAsset_assetNotOwned();
+    /**
+     * @notice Approve an asset owned by the safe wallet.
+     */
+    function _approveAsset(address _asset, uint256 _id, address _receiver) internal returns (bool) {
+        bytes memory payload = _asset == cryptoPunks
+            ? SafeLogic._approvePunksPayload(_asset, _id, _receiver, safe)
+            : SafeLogic._approveERC721Payload(_asset, _id, _receiver, safe);
 
-        return abi.encodeWithSelector(IERC721.transferFrom.selector, safe, _receiver, _id);
+        isExecuting = true;
+        currentTxHash = IGnosisSafe(payable(safe)).getTransactionHash(
+            _asset,
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            IGnosisSafe(payable(safe)).nonce()
+        );
+
+        // https://docs.gnosis-safe.io/contracts/signatures#contract-signature-eip-1271
+        bytes memory signature = abi.encodePacked(
+            abi.encode(address(this)), // r
+            abi.encode(uint256(65)), // s
+            bytes1(0), // v
+            abi.encode(currentTxHash.length),
+            currentTxHash
+        );
+
+        bool success = IGnosisSafe(safe).execTransaction(
+            _asset,
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            signature
+        );
+
+        isExecuting = false;
+        currentTxHash = bytes32(0);
+
+        return success;
     }
 
-    function _transferPunksPayload(
-        address _asset,
-        uint256 _id,
-        address _receiver
-    ) internal view returns (bytes memory) {
-        // safe should be owner
-        if (ICryptoPunks(_asset).punkIndexToAddress(_id) != safe)
-            revert Errors.DelegationOwner__transferAsset_assetNotOwned();
+    /**
+     * @notice Approve an asset owned by the safe wallet.
+     */
+    function _approveERC20(address _asset, uint256 _amount, address _receiver) internal returns (bool) {
+        bytes memory payload = SafeLogic._approveERC20Payload(_asset, _amount, _receiver, safe);
 
-        return abi.encodeWithSelector(ICryptoPunks.transferPunk.selector, _receiver, _id);
+        isExecuting = true;
+        currentTxHash = IGnosisSafe(payable(safe)).getTransactionHash(
+            _asset,
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            IGnosisSafe(payable(safe)).nonce()
+        );
+
+        // https://docs.gnosis-safe.io/contracts/signatures#contract-signature-eip-1271
+        bytes memory signature = abi.encodePacked(
+            abi.encode(address(this)), // r
+            abi.encode(uint256(65)), // s
+            bytes1(0), // v
+            abi.encode(currentTxHash.length),
+            currentTxHash
+        );
+
+        bool success = IGnosisSafe(safe).execTransaction(
+            _asset,
+            0,
+            payload,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(0),
+            signature
+        );
+
+        isExecuting = false;
+        currentTxHash = bytes32(0);
+
+        return success;
     }
 }

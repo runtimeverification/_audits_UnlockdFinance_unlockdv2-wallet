@@ -87,4 +87,12 @@ interface IDelegationOwner {
     function getLoanId(bytes32 _assetId) external returns (bytes32);
 
     function setLoanId(bytes32 _assetId, bytes32 _loanId) external;
+
+    function approveSale(
+        address _collection,
+        uint256 _tokenId,
+        address _underlyingAsset,
+        uint256 _amount,
+        address _saleAdapter
+    ) external;
 }
