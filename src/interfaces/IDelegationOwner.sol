@@ -93,7 +93,7 @@ interface IDelegationOwner {
         uint256 _tokenId,
         address _underlyingAsset,
         uint256 _amount,
-        address _saleAdapter,
+        address _marketApproval,
         bytes32 _loanId
     ) external;
 }
