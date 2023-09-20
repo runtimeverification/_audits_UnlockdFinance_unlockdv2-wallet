@@ -11,7 +11,6 @@ import { SafeLogic } from "../logic/SafeLogic.sol";
 import { Errors } from "../helpers/Errors.sol";
 
 contract BaseSafeOwner {
-    bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
     /**
      * @notice Execution protect
      */
@@ -226,7 +225,7 @@ contract BaseSafeOwner {
         return success;
     }
 
-    function _setupGuard(address _safe, DelegationGuard _guard) internal {
+    function _setupGuard(address _safe, address _guard) internal {
         // this requires this address to be a owner of the safe already
         isExecuting = true;
         bytes memory payload = abi.encodeWithSelector(IGnosisSafe.setGuard.selector, _guard);

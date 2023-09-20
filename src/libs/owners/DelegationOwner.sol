@@ -39,8 +39,10 @@ import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
  *
  * It should be use a proxy's implementation.
  */
-contract DelegationOwner is Initializable, BaseSafeOwner, ISignatureValidator, IDelegationOwner {
+contract DelegationOwner is Initializable, ISignatureValidator, IDelegationOwner, BaseSafeOwner {
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
+
     /**
      * @notice The DelegationRecipes address.
      */
@@ -160,7 +162,7 @@ contract DelegationOwner is Initializable, BaseSafeOwner, ISignatureValidator, I
         );
         guard = DelegationGuard(guardProxy);
 
-        _setupGuard(_safe, guard);
+        _setupGuard(_safe, address(guard));
     }
 
     /**

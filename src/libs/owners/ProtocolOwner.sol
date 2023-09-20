@@ -8,6 +8,7 @@ import { IACLManager } from "../../interfaces/IACLManager.sol";
 import { IProtocolOwner } from "../../interfaces/IProtocolOwner.sol";
 
 import { DelegationGuard } from "../guards/DelegationGuard.sol";
+import { ProtocolGuard } from "../guards/ProtocolGuard.sol";
 import { DelegationOwner } from "./DelegationOwner.sol";
 import { AssetLogic } from "../logic/AssetLogic.sol";
 import { SafeLogic } from "../logic/SafeLogic.sol";
@@ -38,9 +39,15 @@ import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
  * It should be use a proxy's implementation.
  */
 contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
+    bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
+
     DelegationOwner public delegationOwner;
     mapping(bytes32 => bytes32) loansIds;
     mapping(address => bool) oneTimeDelegation;
+    /**
+     * @notice The DelegationGuard address.
+     */
+    ProtocolGuard public guard;
 
     ////////////////////////////////////////////////////////////////////////////////
     // Modifiers
@@ -65,13 +72,26 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
      * @param _owner - The owner of the DelegationWallet.
      * @param _delegationOwner - Use delegation owner
      */
-    function initialize(address _safe, address _owner, address _delegationOwner) public initializer {
+    function initialize(
+        address _guardBeacon,
+        address _safe,
+        address _owner,
+        address _delegationOwner
+    ) public initializer {
+        if (_guardBeacon == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
         if (_safe == address(0)) revert Errors.DelegationGuard__initialize_invalidSafe();
         if (_owner == address(0)) revert Errors.DelegationGuard__initialize_invalidOwner();
 
         delegationOwner = DelegationOwner(_delegationOwner);
         safe = _safe;
         owner = _owner;
+
+        address guardProxy = address(
+            new BeaconProxy(_guardBeacon, abi.encodeWithSelector(ProtocolGuard.initialize.selector))
+        );
+        guard = ProtocolGuard(guardProxy);
+
+        _setupGuard(_safe, address(guard));
     }
 
     ////////////////////////////////////////////////////////////////////////////////

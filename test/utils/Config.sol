@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import { DelegationOwner, Errors } from "src/libs/owners/DelegationOwner.sol";
 import { ProtocolOwner } from "src/libs/owners/ProtocolOwner.sol";
 import { DelegationGuard } from "src/libs/guards/DelegationGuard.sol";
+import { ProtocolGuard } from "src/libs/guards/ProtocolGuard.sol";
 import { DelegationWalletFactory } from "src/DelegationWalletFactory.sol";
 import { DelegationRecipes } from "src/libs/recipes/DelegationRecipes.sol";
 import { DelegationWalletRegistry } from "src/DelegationWalletRegistry.sol";
@@ -55,8 +56,10 @@ contract Config is Test {
     address public delegationOwnerImpl;
     address public delegationGuardImpl;
     address public protocolOwnerImpl;
+    address public protocolGuardImpl;
     address public ownerBeacon;
     address public guardBeacon;
+    address public protocolGuardBeacon;
     address public protocolOwnerBeacon;
     DelegationWalletFactory public delegationWalletFactory;
     DelegationRecipes public delegationRecipes;
@@ -70,7 +73,7 @@ contract Config is Test {
     GnosisSafe public safe;
     DelegationOwner public delegationOwner;
     DelegationGuard public delegationGuard;
-
+    ProtocolGuard public protocolGuard;
     address[] public lockControllers;
     address[] public delegationControllers;
 
@@ -119,7 +122,7 @@ contract Config is Test {
 
         // DelegationGuard implementation
         delegationGuardImpl = address(new DelegationGuard(address(testPunks)));
-
+        protocolGuardImpl = address(new ProtocolGuard());
         // deploy DelegationOwnerBeacon
         ownerBeacon = address(new UpgradeableBeacon(delegationOwnerImpl));
 
@@ -128,6 +131,7 @@ contract Config is Test {
 
         // deploy DelegationGuardBeacon
         guardBeacon = address(new UpgradeableBeacon(delegationGuardImpl));
+        protocolGuardBeacon = address(new UpgradeableBeacon(protocolGuardImpl));
 
         delegationWalletRegistry = new DelegationWalletRegistry();
         delegationWalletFactory = new DelegationWalletFactory(
@@ -137,6 +141,7 @@ contract Config is Test {
             guardBeacon,
             ownerBeacon,
             protocolOwnerBeacon,
+            protocolGuardBeacon,
             address(delegationWalletRegistry)
         );
         delegationWalletRegistry.setFactory(address(delegationWalletFactory));

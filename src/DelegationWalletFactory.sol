@@ -46,6 +46,8 @@ contract DelegationWalletFactory {
      * @notice Stores the DelegationOwner beacon contract address.
      */
     address public immutable protocolOwnerBeacon;
+
+    address public immutable protocolGuardBeacon;
     /**
      * @notice Stores the DelegationWalletRegistry contract address.
      */
@@ -66,6 +68,7 @@ contract DelegationWalletFactory {
         address _guardBeacon,
         address _ownerBeacon,
         address _protocolOwnerBeacon,
+        address _protocolGuardBeacon,
         address _registry
     ) {
         gnosisSafeProxyFactory = _gnosisSafeProxyFactory;
@@ -74,6 +77,7 @@ contract DelegationWalletFactory {
         guardBeacon = _guardBeacon;
         ownerBeacon = _ownerBeacon;
         protocolOwnerBeacon = _protocolOwnerBeacon;
+        protocolGuardBeacon = _protocolGuardBeacon;
         registry = _registry;
     }
 
@@ -124,7 +128,7 @@ contract DelegationWalletFactory {
         //////////////////////////////////////////
         // Protocol Owner
         ProtocolOwner protocolOwner = ProtocolOwner(protocolOwnerProxy);
-        protocolOwner.initialize(address(safeProxy), _owner, address(delegationOwner));
+        protocolOwner.initialize(protocolGuardBeacon, address(safeProxy), _owner, address(delegationOwner));
         //////////////////////////////////////////
         // Save wallet
         IDelegationWalletRegistry(registry).setWallet(
