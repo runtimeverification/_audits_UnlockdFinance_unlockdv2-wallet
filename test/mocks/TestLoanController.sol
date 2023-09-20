@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.19;
 
-import { DelegationOwner } from "../DelegationOwner.sol";
+import { DelegationOwner } from "src/libs/owners/DelegationOwner.sol";
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 

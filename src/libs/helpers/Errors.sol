@@ -108,4 +108,9 @@ library Errors {
     error DelegationWalletRegistry__setWallet_invalidOwnerAddress();
     error DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress();
     error DelegationWalletRegistry__setWallet_invalidGuardAddress();
+    error DelegationWalletRegistry__setWallet_invalidProtocolOwnerAddress();
+
+    // ========== Protocol OWNER ===========
+    error ProtocolOwner__invalidDelegatedAddressAddress();
+    error ProtocolOwner__execTransaction_notSuccess();
 }

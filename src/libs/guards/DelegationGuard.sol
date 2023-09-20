@@ -9,17 +9,16 @@ import { OwnerManager, GuardManager } from "@gnosis.pm/safe-contracts/contracts/
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-import { AssetLogic } from "./libs/logic/AssetLogic.sol";
-import { Errors } from "./libs/helpers/Errors.sol";
-
-import { DelegationOwner } from "./DelegationOwner.sol";
-import { ICryptoPunks } from "./interfaces/ICryptoPunks.sol";
-import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
+import { DelegationOwner } from "../owners/DelegationOwner.sol";
+import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
+import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
+import { AssetLogic } from "../logic/AssetLogic.sol";
+import { Errors } from "../helpers/Errors.sol";
 
 /**
  * @title DelegationGuard
- * @author BootNode
- * @dev This contract protects a DelegationWallet.
+ * @author Unlockd
+ * @dev This contract protects the Wallet. Is attached to DelegationOwner but manager by ProtocolOwner and DelegationOwner
  * - Prevents delegated o locked assets from being transferred.
  * - Prevents the approval of delegated or locked assets.
  * - Prevents all approveForAll.
@@ -33,8 +32,8 @@ contract DelegationGuard is Guard, Initializable {
         bytes4(keccak256(bytes("safeTransferFrom(address,address,uint256,bytes)")));
 
     address public immutable cryptoPunks;
-
-    address internal delegationOwner;
+    address public delegationOwner;
+    mapping(address => bool) public managerOwners;
 
     // any time an asset is locked or delegated, the address is saved here so any address present in this mapping
     // will be checked when a transfer is performed
@@ -51,7 +50,7 @@ contract DelegationGuard is Guard, Initializable {
      * @notice This modifier indicates that only the DelegationOwner contract can execute a given function.
      */
     modifier onlyDelegationOwner() {
-        if (delegationOwner != msg.sender) revert Errors.DelegationGuard__onlyDelegationOwner();
+        if (managerOwners[msg.sender] == false) revert Errors.DelegationGuard__onlyDelegationOwner();
         _;
     }
 
@@ -60,9 +59,13 @@ contract DelegationGuard is Guard, Initializable {
         _disableInitializers();
     }
 
-    function initialize(address _delegationOwner) public initializer {
+    function initialize(address _delegationOwner, address _protocolOwner) public initializer {
         if (_delegationOwner == address(0)) revert Errors.DelegationGuard__initialize_invalidDelegationOwner();
+        if (_protocolOwner == address(0)) revert Errors.DelegationGuard__initialize_invalidDelegationOwner();
         delegationOwner = _delegationOwner;
+        // Set manager Owners
+        managerOwners[_delegationOwner] = true;
+        managerOwners[_protocolOwner] = true;
     }
 
     // solhint-disable-next-line payable-fallback
@@ -94,7 +97,7 @@ contract DelegationGuard is Guard, Initializable {
         // Transactions coming from DelegationOwner are already blocked/allowed there.
         // The delegatee calls execTransaction on DelegationOwner, it checks allowance then calls execTransaction
         // from Safe.
-        if (_msgSender != delegationOwner) {
+        if (managerOwners[_msgSender] == false) {
             _checkLocked(_to, _data);
         }
 

@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { AllowedControllers, Errors } from "src/AllowedControllers.sol";
+import { AllowedControllers, Errors } from "src/libs/allowed/AllowedControllers.sol";
 import { Config } from "./utils/Config.sol";
 
 contract AllowedControllersTest is Config {

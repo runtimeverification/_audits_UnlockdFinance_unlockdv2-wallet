@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.19;
 
-import "src/test/TestNft.sol";
+import "./TestNft.sol";
 import "./TokenERC20.sol";
 
 contract Adapter {

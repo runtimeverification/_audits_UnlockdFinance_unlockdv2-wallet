@@ -2,10 +2,9 @@
 
 pragma solidity 0.8.19;
 
-import { Errors } from "./libs/helpers/Errors.sol";
-
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { Errors } from "../helpers/Errors.sol";
 
 /**
  * @title DelegationRecipes

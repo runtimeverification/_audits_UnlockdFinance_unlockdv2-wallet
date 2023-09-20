@@ -8,11 +8,18 @@ interface IDelegationWalletRegistry {
         address owner;
         address delegationOwner;
         address delegationGuard;
+        address protocolOwner;
     }
 
     function setFactory(address _delegationWalletFactory) external;
 
-    function setWallet(address _wallet, address _owner, address _delegationOwner, address _delegationGuard) external;
+    function setWallet(
+        address _wallet,
+        address _owner,
+        address _delegationOwner,
+        address _delegationGuard,
+        address _protocolOwner
+    ) external;
 
     function getWallet(address _wallet) external view returns (Wallet memory);
 

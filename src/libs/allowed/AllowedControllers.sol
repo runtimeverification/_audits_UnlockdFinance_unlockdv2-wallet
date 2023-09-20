@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.19;
 
-import { Errors } from "./libs/helpers/Errors.sol";
-import { IAllowedControllers } from "./interfaces/IAllowedControllers.sol";
-import { IACLManager } from "./interfaces/IACLManager.sol";
+import { IAllowedControllers } from "../../interfaces/IAllowedControllers.sol";
+import { IACLManager } from "../../interfaces/IACLManager.sol";
+import { Errors } from "../helpers/Errors.sol";
 
 /**
  * @title AllowedController

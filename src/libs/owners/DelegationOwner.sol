@@ -2,18 +2,18 @@
 
 pragma solidity 0.8.19;
 
-import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
-import { ICryptoPunks } from "./interfaces/ICryptoPunks.sol";
-import { IAllowedControllers } from "./interfaces/IAllowedControllers.sol";
-import { IACLManager } from "./interfaces/IACLManager.sol";
-import { DelegationGuard } from "./DelegationGuard.sol";
-import { DelegationRecipes } from "./DelegationRecipes.sol";
+import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
+import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
+import { IAllowedControllers } from "../../interfaces/IAllowedControllers.sol";
+import { IACLManager } from "../../interfaces/IACLManager.sol";
+import { DelegationGuard } from "../guards/DelegationGuard.sol";
+import { DelegationRecipes } from "../recipes/DelegationRecipes.sol";
 
-import { AssetLogic } from "./libs/logic/AssetLogic.sol";
-import { SafeLogic } from "./libs/logic/SafeLogic.sol";
-import { Errors } from "./libs/helpers/Errors.sol";
+import { AssetLogic } from "../logic/AssetLogic.sol";
+import { SafeLogic } from "../logic/SafeLogic.sol";
+import { Errors } from "../helpers/Errors.sol";
 
-import { IDelegationOwner } from "./interfaces/IDelegationOwner.sol";
+import { IDelegationOwner } from "../../interfaces/IDelegationOwner.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -25,9 +25,11 @@ import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { ISignatureValidator } from "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
 
+import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
+
 /**
  * @title DelegationOwner
- * @author BootNode
+ * @author Unlockd
  * @dev This contract contains the logic that enables asset/signature delegates to interact with a Gnosis Safe wallet.
  * In the case of assets delegates, it will allow them to execute functions though the Safe, only those registered
  * as allowed on the DelegationRecipes contract.
@@ -37,13 +39,8 @@ import { ISignatureValidator } from "@gnosis.pm/safe-contracts/contracts/interfa
  *
  * It should be use a proxy's implementation.
  */
-contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable {
+contract DelegationOwner is IDelegationOwner, ISignatureValidator, BaseSafeOwner {
     using EnumerableSet for EnumerableSet.Bytes32Set;
-    bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
-    /**
-     * @notice Address of cryptoPunks
-     */
-    address public immutable cryptoPunks;
     /**
      * @notice The DelegationRecipes address.
      */
@@ -55,47 +52,14 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     IAllowedControllers public immutable allowedControllers;
 
     /**
-     * @notice The ACLManager address implementatiuon.
-     */
-    IACLManager public immutable aclManager;
-
-    /**
-     * @notice total of assets on this wallet
-     */
-    uint256 private totalAssets;
-
-    /**
-     * @notice Safe wallet address.
-     */
-    address public safe;
-
-    /**
-     * @notice The owner of the DelegationWallet, it is set only once upon initialization. Since this contract works
-     * in tandem with DelegationGuard which do not allow to change the Safe owners, this owner can't change neither.
-     */
-    address public owner;
-
-    /**
      * @notice The delegation controller address. Allowed to execute delegation related functions.
      */
     mapping(address => bool) public delegationControllers;
 
     /**
-     * @notice The lock controller address. Allowed to execute asset locking related functions.
-     */
-    mapping(address => bool) public lockControllers;
-    /**
-     * @notice Relation between the assetId and the loanId
-     */
-    mapping(bytes32 => bytes32) loansIds;
-
-    /**
      * @notice The DelegationGuard address.
      */
     DelegationGuard public guard;
-
-    bool internal isExecuting;
-    bytes32 internal currentTxHash;
 
     /**
      * @notice Stores the list of asset delegations. keccak256(address, nft id) => Delegation
@@ -113,11 +77,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      */
     mapping(uint256 => EnumerableSet.Bytes32Set) private signatureDelegationAssetsIds;
 
-    struct SignatureAssets {
-        address[] assets;
-        uint256[] ids;
-    }
-
     /**
      * @notice List of assets and ids affected by last signatureDelegation. This is used mainly when ending the
      * signature delegation to  be able to set the expiry of each asset on the guard. Using EnumerableSet.values from
@@ -131,55 +90,22 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      */
     uint256 private currentSignatureDelegationAssets;
 
-    /**
-     * @notice Stores for each locked assets the date since it turns claimable. keccak256(address, nft id) => claimDate
-     */
-    mapping(bytes32 => uint256) public lockedAssets;
+    address private protocolOwner;
 
-    // /**
-    //  * @notice Stores for each locked assets the lock controller address
-    //  */
-    // mapping(bytes32 => address) public lockedBy;
-
-    // ========== Events ===========
-    /**
-     * @notice Delegation information, it is used for assets and signatures.
-     *
-     * @param controller - The delegation controller address that created the delegations.
-     * @param delegatee - The delegatee address.
-     * @param from - The date (seconds timestamp) when the delegation starts.
-     * @param to - The date (seconds timestamp) when the delegation ends.
-     */
-    struct Delegation {
-        address controller;
-        address delegatee;
-        uint256 from;
-        uint256 to;
-    }
-
-    /**
-     * @notice This modifier indicates that only the Delegation Controller can execute a given function.
-     */
-    modifier onlyOwner() {
-        if (owner != msg.sender) revert Errors.DelegationOwner__onlyOwner();
-        _;
-    }
-
-    modifier onlyProtocol() {
-        if (!aclManager.isProtocol(msg.sender)) revert Errors.Caller_notProtocol();
-        _;
-    }
-
-    modifier onlyGov() {
-        if (!aclManager.isGovernanceAdmin(msg.sender)) revert Errors.Caller_notGovernanceAdmin();
-        _;
-    }
+    ////////////////////////////////////////////////////////////////////////////////
+    // Modifiers
+    ////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @notice This modifier indicates that only the Delegation Controller can execute a given function.
      */
     modifier onlyDelegationController() {
         if (!delegationControllers[msg.sender]) revert Errors.DelegationOwner__onlyDelegationController();
+        _;
+    }
+
+    modifier onlyProtocolOwner() {
+        if (protocolOwner != msg.sender) revert Errors.DelegationOwner__onlyDelegationController();
         _;
     }
 
@@ -200,17 +126,20 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
      * @param _safe - The DelegationWallet address, the GnosisSafe.
      * @param _owner - The owner of the DelegationWallet.
      * @param _delegationController - The address that acts as the delegation controller.
+     * @param _protocolOwner - The address that acts as the delegation controller.
      */
     function initialize(
         address _guardBeacon,
         address _safe,
         address _owner,
-        address _delegationController
+        address _delegationController,
+        address _protocolOwner
     ) public initializer {
         if (_guardBeacon == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
         if (_safe == address(0)) revert Errors.DelegationGuard__initialize_invalidSafe();
         if (_owner == address(0)) revert Errors.DelegationGuard__initialize_invalidOwner();
 
+        protocolOwner = _protocolOwner;
         safe = _safe;
         owner = _owner;
         if (_delegationController != address(0)) {
@@ -218,7 +147,10 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         }
 
         address guardProxy = address(
-            new BeaconProxy(_guardBeacon, abi.encodeWithSelector(DelegationGuard.initialize.selector, address(this)))
+            new BeaconProxy(
+                _guardBeacon,
+                abi.encodeWithSelector(DelegationGuard.initialize.selector, address(this), _protocolOwner)
+            )
         );
         guard = DelegationGuard(guardProxy);
 
@@ -283,6 +215,13 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
 
         emit EndDelegation(_asset, _id, msg.sender);
 
+        guard.setDelegationExpiry(_asset, _id, 0);
+    }
+
+    function forceEndDelegation(address _asset, uint256 _id) external onlyProtocolOwner {
+        Delegation storage delegation = delegations[AssetLogic.assetId(_asset, _id)];
+        delegation.to = 0;
+        emit EndDelegation(_asset, _id, msg.sender);
         guard.setDelegationExpiry(_asset, _id, 0);
     }
 
@@ -488,14 +427,6 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
     }
 
     /**
-     * @notice Returns if an asset is locked.
-     * @param _id - The asset id.
-     */
-    function isAssetLocked(bytes32 _id) external view returns (bool) {
-        return guard.isLocked(_id);
-    }
-
-    /**
      * @notice Returns if an asset is delegated or included in current signature delegation.
      * @param _asset - The asset addresses.
      * @param _id - The asset id.
@@ -511,108 +442,9 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         return _isDelegating(signatureDelegation);
     }
 
-    /**
-     * @notice Returns the hash of the NFTs.
-     */
-    function assetId(address _asset, uint256 _id) external pure returns (bytes32) {
-        return AssetLogic.assetId(_asset, _id);
-    }
-
-    /**
-     * @notice Return the LoanId asigned to a asset
-     *  < 0 means the asset is locked
-     */
-    function getLoanId(bytes32 index) external view returns (bytes32) {
-        return loansIds[index];
-    }
-
-    /**
-     * @notice set loan id assigned to a especific assetId
-     */
-    function setLoanId(bytes32 _index, bytes32 _loanId) external onlyProtocol {
-        _setLoanId(_index, _loanId);
-        emit SetLoanId(_index, _loanId);
-    }
-
-    /**
-     * @notice change the current ownership of a asset
-     */
-    function changeOwner(address _asset, uint256 _id, address _newOwner) external onlyProtocol {
-        bytes32 id = AssetLogic.assetId(_asset, _id);
-        Delegation storage delegation = delegations[id];
-
-        // By default we assign to 0
-        _setLoanId(id, 0);
-        delegation.to = 0;
-
-        bool success = _transferAsset(_asset, _id, _newOwner);
-        if (!success) revert Errors.DelegationOwner__changeOwner_notSuccess();
-
-        emit ChangeOwner(_asset, _id, _newOwner);
-
-        guard.setDelegationExpiry(_asset, _id, 0);
-    }
-
-    /**
-     * @notice batch function to set to 0 a group of assets
-     */
-    function batchSetToZeroLoanId(bytes32[] calldata _assets) external onlyProtocol {
-        uint256 cachedAssets = _assets.length;
-        for (uint256 i = 0; i < cachedAssets; ) {
-            if (loansIds[_assets[i]] == 0) revert Errors.DelegationOwner__assetNotLocked();
-            _setLoanId(_assets[i], 0);
-            unchecked {
-                i++;
-            }
-        }
-        emit SetBatchLoanId(_assets, 0);
-    }
-
-    /**
-     * @notice batch function to set to differnt from 0 a group of assets
-     */
-    function batchSetLoanId(bytes32[] calldata _assets, bytes32 _loanId) external onlyProtocol {
-        uint256 cachedAssets = _assets.length;
-        for (uint256 i = 0; i < cachedAssets; ) {
-            if (loansIds[_assets[i]] != 0) revert Errors.DelegationOwner__assetAlreadyLocked();
-            _setLoanId(_assets[i], _loanId);
-            unchecked {
-                i++;
-            }
-        }
-        emit SetBatchLoanId(_assets, _loanId);
-    }
-
-    function approveSale(
-        address _collection,
-        uint256 _tokenId,
-        address _underlyingAsset,
-        uint256 _amount,
-        address _marketApproval,
-        bytes32 _loanId
-    ) external onlyProtocol {
-        if (loansIds[AssetLogic.assetId(_collection, _tokenId)] != _loanId) {
-            revert Errors.DelegationOwner__wrongLoanId();
-        }
-        // Asset approval to the adapter to perform the sell
-        _approveAsset(_collection, _tokenId, _marketApproval);
-        // Approval of the ERC20 to repay the debs
-        _approveERC20(_underlyingAsset, _amount, msg.sender);
-    }
-
     //////////////////////////////////////////////
     //       Internal functions
     //////////////////////////////////////////////
-
-    function _setLoanId(bytes32 _assetId, bytes32 _loanId) internal {
-        loansIds[_assetId] = _loanId;
-
-        if (_loanId == 0) {
-            guard.unlockAsset(_assetId);
-        } else {
-            guard.lockAsset(_assetId);
-        }
-    }
 
     function _setDelegationController(address _delegationController, bool _allowed) internal {
         if (_allowed && !allowedControllers.isAllowedDelegationController(_delegationController))
@@ -672,199 +504,5 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, Initializable
         if (!_isDelegating(_delegation)) revert Errors.DelegationOwner__delegationCreatorChecks_notDelegated();
         if (_delegation.controller != msg.sender)
             revert Errors.DelegationOwner__delegationCreatorChecks_onlyDelegationCreator();
-    }
-
-    function _setupGuard(address _safe, DelegationGuard _guard) internal {
-        // this requires this address to be a owner of the safe already
-        isExecuting = true;
-        bytes memory payload = abi.encodeWithSelector(IGnosisSafe.setGuard.selector, _guard);
-        currentTxHash = IGnosisSafe(payable(_safe)).getTransactionHash(
-            // Transaction info
-            safe,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            // Payment info
-            0,
-            0,
-            address(0),
-            payable(0),
-            // Signature info
-            IGnosisSafe(payable(_safe)).nonce()
-        );
-
-        // https://docs.gnosis-safe.io/contracts/signatures#contract-signature-eip-1271
-        bytes memory signature = abi.encodePacked(
-            abi.encode(address(this)), // r
-            abi.encode(uint256(65)), // s
-            bytes1(0), // v
-            abi.encode(currentTxHash.length),
-            currentTxHash
-        );
-
-        IGnosisSafe(_safe).execTransaction(
-            safe,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            signature
-        );
-
-        isExecuting = false;
-        currentTxHash = bytes32(0);
-    }
-
-    /**
-     * @notice Transfer an asset owned by the safe.
-     */
-    function _transferAsset(address _asset, uint256 _id, address _receiver) internal returns (bool) {
-        bytes memory payload = _asset == cryptoPunks
-            ? SafeLogic._transferPunksPayload(_asset, _id, _receiver, safe)
-            : SafeLogic._transferERC721Payload(_asset, _id, _receiver, safe);
-
-        isExecuting = true;
-        currentTxHash = IGnosisSafe(payable(safe)).getTransactionHash(
-            _asset,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            IGnosisSafe(payable(safe)).nonce()
-        );
-
-        // https://docs.gnosis-safe.io/contracts/signatures#contract-signature-eip-1271
-        bytes memory signature = abi.encodePacked(
-            abi.encode(address(this)), // r
-            abi.encode(uint256(65)), // s
-            bytes1(0), // v
-            abi.encode(currentTxHash.length),
-            currentTxHash
-        );
-
-        bool success = IGnosisSafe(safe).execTransaction(
-            _asset,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            signature
-        );
-
-        isExecuting = false;
-        currentTxHash = bytes32(0);
-
-        return success;
-    }
-
-    /**
-     * @notice Approve an asset owned by the safe wallet.
-     */
-    function _approveAsset(address _asset, uint256 _id, address _receiver) internal returns (bool) {
-        bytes memory payload = _asset == cryptoPunks
-            ? SafeLogic._approvePunksPayload(_asset, _id, _receiver, safe)
-            : SafeLogic._approveERC721Payload(_asset, _id, _receiver, safe);
-
-        isExecuting = true;
-        currentTxHash = IGnosisSafe(payable(safe)).getTransactionHash(
-            _asset,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            IGnosisSafe(payable(safe)).nonce()
-        );
-
-        // https://docs.gnosis-safe.io/contracts/signatures#contract-signature-eip-1271
-        bytes memory signature = abi.encodePacked(
-            abi.encode(address(this)), // r
-            abi.encode(uint256(65)), // s
-            bytes1(0), // v
-            abi.encode(currentTxHash.length),
-            currentTxHash
-        );
-
-        bool success = IGnosisSafe(safe).execTransaction(
-            _asset,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            signature
-        );
-
-        isExecuting = false;
-        currentTxHash = bytes32(0);
-
-        return success;
-    }
-
-    /**
-     * @notice Approve an asset owned by the safe wallet.
-     */
-    function _approveERC20(address _asset, uint256 _amount, address _receiver) internal returns (bool) {
-        bytes memory payload = SafeLogic._approveERC20Payload(_asset, _amount, _receiver, safe);
-
-        isExecuting = true;
-        currentTxHash = IGnosisSafe(payable(safe)).getTransactionHash(
-            _asset,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            IGnosisSafe(payable(safe)).nonce()
-        );
-
-        // https://docs.gnosis-safe.io/contracts/signatures#contract-signature-eip-1271
-        bytes memory signature = abi.encodePacked(
-            abi.encode(address(this)), // r
-            abi.encode(uint256(65)), // s
-            bytes1(0), // v
-            abi.encode(currentTxHash.length),
-            currentTxHash
-        );
-
-        bool success = IGnosisSafe(safe).execTransaction(
-            _asset,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            signature
-        );
-
-        isExecuting = false;
-        currentTxHash = bytes32(0);
-
-        return success;
     }
 }

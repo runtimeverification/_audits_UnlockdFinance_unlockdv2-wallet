@@ -4,14 +4,15 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, Errors } from "src/DelegationOwner.sol";
-import { DelegationGuard } from "src/DelegationGuard.sol";
+import { DelegationOwner, Errors } from "src/libs/owners/DelegationOwner.sol";
+import { ProtocolOwner } from "src/libs/owners/ProtocolOwner.sol";
+import { DelegationGuard } from "src/libs/guards/DelegationGuard.sol";
 import { DelegationWalletFactory } from "src/DelegationWalletFactory.sol";
-import { DelegationRecipes } from "src/DelegationRecipes.sol";
+import { DelegationRecipes } from "src/libs/recipes/DelegationRecipes.sol";
 import { DelegationWalletRegistry } from "src/DelegationWalletRegistry.sol";
-import { AllowedControllers } from "src/AllowedControllers.sol";
-import { TestNft } from "src/test/TestNft.sol";
-import { TestNftPlatform } from "src/test/TestNftPlatform.sol";
+import { AllowedControllers } from "src/libs/allowed/AllowedControllers.sol";
+import { TestNft } from "../mocks/TestNft.sol";
+import { TestNftPlatform } from "../mocks/TestNftPlatform.sol";
 import { IACLManager } from "src/interfaces/IACLManager.sol";
 import { ICryptoPunks } from "../../src/interfaces/ICryptoPunks.sol";
 import { ACLManager } from "../mocks/ACLManager.sol";
@@ -53,8 +54,10 @@ contract Config is Test {
 
     address public delegationOwnerImpl;
     address public delegationGuardImpl;
+    address public protocolOwnerImpl;
     address public ownerBeacon;
     address public guardBeacon;
+    address public protocolOwnerBeacon;
     DelegationWalletFactory public delegationWalletFactory;
     DelegationRecipes public delegationRecipes;
     DelegationWalletRegistry public delegationWalletRegistry;
@@ -103,6 +106,7 @@ contract Config is Test {
         delegationRecipes = new DelegationRecipes();
         allowedControllers = new AllowedControllers(address(aclManager), delegationControllers);
 
+        protocolOwnerImpl = address(new ProtocolOwner(address(testPunks), address(aclManager)));
         // DelegationOwner implementation
         delegationOwnerImpl = address(
             new DelegationOwner(
@@ -119,6 +123,9 @@ contract Config is Test {
         // deploy DelegationOwnerBeacon
         ownerBeacon = address(new UpgradeableBeacon(delegationOwnerImpl));
 
+        // deploy DelegationOwnerBeacon
+        protocolOwnerBeacon = address(new UpgradeableBeacon(protocolOwnerImpl));
+
         // deploy DelegationGuardBeacon
         guardBeacon = address(new UpgradeableBeacon(delegationGuardImpl));
 
@@ -129,6 +136,7 @@ contract Config is Test {
             compatibilityFallbackHandler,
             guardBeacon,
             ownerBeacon,
+            protocolOwnerBeacon,
             address(delegationWalletRegistry)
         );
         delegationWalletRegistry.setFactory(address(delegationWalletFactory));

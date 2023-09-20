@@ -2,16 +2,16 @@
 
 pragma solidity 0.8.19;
 
-import { DelegationOwner } from "./DelegationOwner.sol";
-import { IDelegationWalletRegistry } from "./interfaces/IDelegationWalletRegistry.sol";
-
 import { GnosisSafeProxyFactory, GnosisSafeProxy } from "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
-import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
-
+import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+
+import { IDelegationWalletRegistry } from "./interfaces/IDelegationWalletRegistry.sol";
+import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import { DelegationOwner } from "./libs/owners/DelegationOwner.sol";
+import { ProtocolOwner } from "./libs/owners/ProtocolOwner.sol";
 
 /**
  * @title DelegationWalletFactory
@@ -42,6 +42,10 @@ contract DelegationWalletFactory {
      */
     address public immutable ownerBeacon;
     /**
+     * @notice Stores the DelegationOwner beacon contract address.
+     */
+    address public immutable protocolOwnerBeacon;
+    /**
      * @notice Stores the DelegationWalletRegistry contract address.
      */
     address public immutable registry;
@@ -60,6 +64,7 @@ contract DelegationWalletFactory {
         address _compatibilityFallbackHandler,
         address _guardBeacon,
         address _ownerBeacon,
+        address _protocolOwnerBeacon,
         address _registry
     ) {
         gnosisSafeProxyFactory = _gnosisSafeProxyFactory;
@@ -67,6 +72,7 @@ contract DelegationWalletFactory {
         compatibilityFallbackHandler = _compatibilityFallbackHandler;
         guardBeacon = _guardBeacon;
         ownerBeacon = _ownerBeacon;
+        protocolOwnerBeacon = _protocolOwnerBeacon;
         registry = _registry;
     }
 
@@ -88,16 +94,18 @@ contract DelegationWalletFactory {
         );
 
         address delegationOwnerProxy = address(new BeaconProxy(ownerBeacon, new bytes(0)));
+        address protocolOwnerProxy = address(new BeaconProxy(protocolOwnerBeacon, new bytes(0)));
 
         address[] memory owners = new address[](2);
         owners[0] = _owner;
         owners[1] = delegationOwnerProxy;
+        owners[2] = protocolOwnerProxy;
 
         // setup owners and threshold, this should be done before delegationOwner.initialize because DelegationOwners
         // has to be an owner to be able to set the guard
         GnosisSafe(payable(safeProxy)).setup(
             owners,
-            1,
+            2,
             address(0),
             new bytes(0),
             compatibilityFallbackHandler,
@@ -106,11 +114,25 @@ contract DelegationWalletFactory {
             payable(address(0))
         );
 
+        //////////////////////////////////////////
+        // Delegation Owner
         DelegationOwner delegationOwner = DelegationOwner(delegationOwnerProxy);
-        delegationOwner.initialize(guardBeacon, address(safeProxy), _owner, _delegationController);
-        address delegationGuard = address(delegationOwner.guard());
+        delegationOwner.initialize(guardBeacon, address(safeProxy), _owner, _delegationController, protocolOwnerProxy);
 
-        IDelegationWalletRegistry(registry).setWallet(safeProxy, _owner, delegationOwnerProxy, delegationGuard);
+        address delegationGuard = address(delegationOwner.guard());
+        //////////////////////////////////////////
+        // Protocol Owner
+        ProtocolOwner protocolOwner = ProtocolOwner(protocolOwnerProxy);
+        protocolOwner.initialize(address(safeProxy), _owner, address(delegationOwner));
+        //////////////////////////////////////////
+        // Save wallet
+        IDelegationWalletRegistry(registry).setWallet(
+            safeProxy,
+            _owner,
+            delegationOwnerProxy,
+            delegationGuard,
+            protocolOwnerProxy
+        );
 
         emit WalletDeployed(safeProxy, _owner, delegationOwnerProxy, delegationGuard, msg.sender);
 
