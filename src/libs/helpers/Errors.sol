@@ -16,7 +16,7 @@ library Errors {
     error DelegationGuard__initialize_invalidRecipes();
     error DelegationGuard__initialize_invalidSafe();
     error DelegationGuard__initialize_invalidOwner();
-
+    error DelegationGuard__initialize_aclManager();
     error DelegationOwner__assetNotLocked();
     error DelegationOwner__wrongLoanId();
     error DelegationOwner__assetAlreadyLocked();

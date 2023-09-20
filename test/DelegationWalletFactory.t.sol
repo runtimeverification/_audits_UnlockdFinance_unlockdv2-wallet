@@ -38,5 +38,6 @@ contract DelegationWalletFactoryTest is Config {
         (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deployFor(vegeta, address(0));
 
         assertEq(DelegationOwner(delegationOwnerProxy).owner(), vegeta);
+        assertEq(DelegationOwner(delegationOwnerProxy).aclManager(), address(aclManager));
     }
 }

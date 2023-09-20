@@ -1,4 +1,7 @@
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+// SPDX-License-Identifier: BUSL-1.1
+
+pragma solidity 0.8.19;
+
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
 import { IACLManager } from "../../interfaces/IACLManager.sol";
@@ -7,7 +10,7 @@ import { AssetLogic } from "../logic/AssetLogic.sol";
 import { SafeLogic } from "../logic/SafeLogic.sol";
 import { Errors } from "../helpers/Errors.sol";
 
-contract BaseSafeOwner is Initializable {
+contract BaseSafeOwner {
     bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
     /**
      * @notice Execution protect
@@ -17,11 +20,11 @@ contract BaseSafeOwner is Initializable {
     /**
      * @notice Address of cryptoPunks
      */
-    address public cryptoPunks;
+    address public immutable cryptoPunks;
     /**
      * @notice The ACLManager address implementatiuon.
      */
-    IACLManager public aclManager;
+    address public immutable aclManager;
 
     /**
      * @notice Safe wallet address.
@@ -33,6 +36,11 @@ contract BaseSafeOwner is Initializable {
      * in tandem with DelegationGuard which do not allow to change the Safe owners, this owner can't change neither.
      */
     address public owner;
+
+    constructor(address _cryptoPunks, address _aclManager) {
+        cryptoPunks = _cryptoPunks;
+        aclManager = _aclManager;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////
     // Modifiers
@@ -46,12 +54,12 @@ contract BaseSafeOwner is Initializable {
     }
 
     modifier onlyProtocol() {
-        if (!aclManager.isProtocol(msg.sender)) revert Errors.Caller_notProtocol();
+        if (IACLManager(aclManager).isProtocol(msg.sender) == false) revert Errors.Caller_notProtocol();
         _;
     }
 
     modifier onlyGov() {
-        if (!aclManager.isGovernanceAdmin(msg.sender)) revert Errors.Caller_notGovernanceAdmin();
+        if (IACLManager(aclManager).isGovernanceAdmin(msg.sender) == false) revert Errors.Caller_notGovernanceAdmin();
         _;
     }
 

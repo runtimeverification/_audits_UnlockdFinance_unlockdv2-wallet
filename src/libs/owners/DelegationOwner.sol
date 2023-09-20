@@ -39,7 +39,7 @@ import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
  *
  * It should be use a proxy's implementation.
  */
-contract DelegationOwner is IDelegationOwner, ISignatureValidator, BaseSafeOwner {
+contract DelegationOwner is Initializable, BaseSafeOwner, ISignatureValidator, IDelegationOwner {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     /**
      * @notice The DelegationRecipes address.
@@ -112,11 +112,17 @@ contract DelegationOwner is IDelegationOwner, ISignatureValidator, BaseSafeOwner
     /**
      * @dev Disables the initializer in order to prevent implementation initialization.
      */
-    constructor(address _cryptoPunks, address _recipes, address _allowedControllers, address _aclManager) {
-        cryptoPunks = _cryptoPunks;
+    constructor(
+        address _cryptoPunks,
+        address _recipes,
+        address _allowedControllers,
+        address _aclManager
+    ) BaseSafeOwner(_cryptoPunks, _aclManager) {
+        if (_aclManager == address(0)) revert Errors.DelegationGuard__initialize_aclManager();
+
         recipes = DelegationRecipes(_recipes);
         allowedControllers = IAllowedControllers(_allowedControllers);
-        aclManager = IACLManager(_aclManager);
+
         _disableInitializers();
     }
 

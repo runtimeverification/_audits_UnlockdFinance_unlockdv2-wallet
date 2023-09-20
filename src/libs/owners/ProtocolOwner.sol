@@ -37,7 +37,7 @@ import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
  *
  * It should be use a proxy's implementation.
  */
-contract ProtocolOwner is Initializable, IProtocolOwner, BaseSafeOwner {
+contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
     DelegationOwner public delegationOwner;
     mapping(bytes32 => bytes32) loansIds;
     mapping(address => bool) oneTimeDelegation;
@@ -54,9 +54,7 @@ contract ProtocolOwner is Initializable, IProtocolOwner, BaseSafeOwner {
     /**
      * @dev Disables the initializer in order to prevent implementation initialization.
      */
-    constructor(address _cryptoPunks, address _aclManager) {
-        cryptoPunks = _cryptoPunks;
-        aclManager = IACLManager(_aclManager);
+    constructor(address _cryptoPunks, address _aclManager) BaseSafeOwner(_cryptoPunks, _aclManager) {
         _disableInitializers();
     }
 
