@@ -25,7 +25,11 @@ contract ProtocolGuard is Guard, Initializable {
         _disableInitializers();
     }
 
-    function initialize() public initializer {}
+    function initialize(address _delegationOwner) public initializer {
+        if (_delegationOwner == address(0)) revert Errors.DelegationGuard__initialize_invalidDelegationOwner();
+
+        // NOTHING
+    }
 
     // solhint-disable-next-line payable-fallback
     fallback() external {

@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.19;
 
+import { Guard } from "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
 import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
 import { IAllowedControllers } from "../../interfaces/IAllowedControllers.sol";
@@ -162,7 +163,7 @@ contract DelegationOwner is Initializable, ISignatureValidator, IDelegationOwner
         );
         guard = DelegationGuard(guardProxy);
 
-        _setupGuard(_safe, address(guard));
+        _setupGuard(_safe, Guard(guard));
     }
 
     /**

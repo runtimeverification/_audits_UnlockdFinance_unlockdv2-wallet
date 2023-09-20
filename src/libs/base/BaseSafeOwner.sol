@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity 0.8.19;
-
+import { Guard } from "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
 import { IACLManager } from "../../interfaces/IACLManager.sol";
@@ -225,7 +225,7 @@ contract BaseSafeOwner {
         return success;
     }
 
-    function _setupGuard(address _safe, address _guard) internal {
+    function _setupGuard(address _safe, Guard _guard) internal {
         // this requires this address to be a owner of the safe already
         isExecuting = true;
         bytes memory payload = abi.encodeWithSelector(IGnosisSafe.setGuard.selector, _guard);

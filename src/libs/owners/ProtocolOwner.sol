@@ -2,6 +2,8 @@
 
 pragma solidity 0.8.19;
 
+import { Guard } from "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
+import { console } from "forge-std/console.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
 import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
 import { IACLManager } from "../../interfaces/IACLManager.sol";
@@ -87,11 +89,12 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
         owner = _owner;
 
         address guardProxy = address(
-            new BeaconProxy(_guardBeacon, abi.encodeWithSelector(ProtocolGuard.initialize.selector))
+            new BeaconProxy(_guardBeacon, abi.encodeWithSelector(ProtocolGuard.initialize.selector, _delegationOwner))
         );
         guard = ProtocolGuard(guardProxy);
-
-        _setupGuard(_safe, address(guard));
+        console.log("SAFE", _safe);
+        console.log("GUARD", address(guard));
+        _setupGuard(_safe, Guard(guard));
     }
 
     ////////////////////////////////////////////////////////////////////////////////

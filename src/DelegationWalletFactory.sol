@@ -119,16 +119,23 @@ contract DelegationWalletFactory {
             payable(address(0))
         );
 
+        console.log("PROTOCOL OWNER");
+        DelegationOwner delegationOwner = DelegationOwner(delegationOwnerProxy);
+        ProtocolOwner protocolOwner = ProtocolOwner(protocolOwnerProxy);
+        //////////////////////////////////////////
+        // Protocol Owner
+
+        protocolOwner.initialize(protocolGuardBeacon, address(safeProxy), _owner, address(delegationOwner));
+
+        console.log("DELEGATION OWNER");
         //////////////////////////////////////////
         // Delegation Owner
-        DelegationOwner delegationOwner = DelegationOwner(delegationOwnerProxy);
+
         delegationOwner.initialize(guardBeacon, address(safeProxy), _owner, _delegationController, protocolOwnerProxy);
 
         address delegationGuard = address(delegationOwner.guard());
-        //////////////////////////////////////////
-        // Protocol Owner
-        ProtocolOwner protocolOwner = ProtocolOwner(protocolOwnerProxy);
-        protocolOwner.initialize(protocolGuardBeacon, address(safeProxy), _owner, address(delegationOwner));
+
+        console.log("SET WALLET");
         //////////////////////////////////////////
         // Save wallet
         IDelegationWalletRegistry(registry).setWallet(
