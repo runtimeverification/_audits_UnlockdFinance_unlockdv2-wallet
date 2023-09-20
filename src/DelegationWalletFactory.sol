@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.19;
 
+import { console } from "forge-std/console.sol";
 import { GnosisSafeProxyFactory, GnosisSafeProxy } from "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
@@ -96,7 +97,7 @@ contract DelegationWalletFactory {
         address delegationOwnerProxy = address(new BeaconProxy(ownerBeacon, new bytes(0)));
         address protocolOwnerProxy = address(new BeaconProxy(protocolOwnerBeacon, new bytes(0)));
 
-        address[] memory owners = new address[](2);
+        address[] memory owners = new address[](3);
         owners[0] = _owner;
         owners[1] = delegationOwnerProxy;
         owners[2] = protocolOwnerProxy;
@@ -105,7 +106,7 @@ contract DelegationWalletFactory {
         // has to be an owner to be able to set the guard
         GnosisSafe(payable(safeProxy)).setup(
             owners,
-            2,
+            1,
             address(0),
             new bytes(0),
             compatibilityFallbackHandler,
