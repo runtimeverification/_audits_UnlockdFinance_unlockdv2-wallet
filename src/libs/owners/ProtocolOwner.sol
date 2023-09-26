@@ -40,7 +40,7 @@ import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
  *
  * It should be use a proxy's implementation.
  */
-contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
+contract ProtocolOwner is Initializable, BaseSafeOwner, ISignatureValidator, IProtocolOwner {
     bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
 
     DelegationOwner public delegationOwner;
@@ -49,7 +49,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
     /**
      * @notice The DelegationGuard address.
      */
-    ProtocolGuard public guard;
+    ProtocolGuard public protocolGuard;
 
     ////////////////////////////////////////////////////////////////////////////////
     // Modifiers
@@ -89,12 +89,12 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
         owner = _owner;
 
         address guardProxy = address(
-            new BeaconProxy(_guardBeacon, abi.encodeWithSelector(ProtocolGuard.initialize.selector, _delegationOwner))
+            new BeaconProxy(_guardBeacon, abi.encodeWithSelector(ProtocolGuard.initialize.selector, _delegationOwner, address(this)))
         );
-        guard = ProtocolGuard(guardProxy);
+        protocolGuard = ProtocolGuard(guardProxy);
         console.log("SAFE", _safe);
-        console.log("GUARD", address(guard));
-        _setupGuard(_safe, Guard(guard));
+        console.log("GUARD", address(protocolGuard));
+        _setupGuard(_safe, Guard(protocolGuard));
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -275,6 +275,30 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
             }
         }
         emit SetBatchLoanId(_assets, _loanId);
+    }
+
+    /**
+     * @notice Validates that the signer is the current signature delegatee, or a valid transaction executed by a asset
+     * delegatee.
+     * @param _data Hash of the data signed on the behalf of address(msg.sender) which must be encoded as bytes,
+     * necessary to make it compatible how the Safe calls the function.
+     * @param _signature Signature byte array associated with _dataHash
+     */
+    function isValidSignature(bytes memory _data, bytes memory _signature) public view override returns (bytes4) {
+        if (!isExecuting) {
+            //if (!_isDelegating(signatureDelegation)) revert Errors.DelegationOwner__isValidSignature_notDelegated();
+            // CompatibilityFallbackHandler encodes the bytes32 dataHash before calling the old version of i
+            // sValidSignature
+            bytes32 dataHash = abi.decode(_data, (bytes32));
+            address signer = ECDSA.recover(dataHash, _signature);
+            //if (signatureDelegation.delegatee != signer)
+            //    revert Errors.DelegationOwner__isValidSignature_invalidSigner();
+        } else {
+            bytes32 txHash = abi.decode(_signature, (bytes32));
+            if (txHash != currentTxHash) revert Errors.DelegationOwner__isValidSignature_invalidExecSig();
+        }
+
+        return EIP1271_MAGIC_VALUE;
     }
 
     //////////////////////////////////////////////

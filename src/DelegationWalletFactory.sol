@@ -84,7 +84,7 @@ contract DelegationWalletFactory {
     /**
      * @notice Deploys a new DelegationWallet with the msg.sender as the owner.
      */
-    function deploy(address _delegationController) external returns (address, address, address) {
+    function deploy(address _delegationController) external returns (address, address, address, address) {
         return deployFor(msg.sender, _delegationController);
     }
 
@@ -93,7 +93,15 @@ contract DelegationWalletFactory {
      * @param _owner - The owner's address.
      * @param _delegationController - Delegation controller owner
      */
-    function deployFor(address _owner, address _delegationController) public returns (address, address, address) {
+    function deployFor(
+        address _owner, 
+        address _delegationController
+    ) public returns (
+        address, 
+        address, 
+        address, 
+        address
+    ) {
         address safeProxy = address(
             GnosisSafeProxyFactory(gnosisSafeProxyFactory).createProxy(singleton, new bytes(0))
         );
@@ -148,6 +156,6 @@ contract DelegationWalletFactory {
 
         emit WalletDeployed(safeProxy, _owner, delegationOwnerProxy, delegationGuard, msg.sender);
 
-        return (safeProxy, delegationOwnerProxy, delegationGuard);
+        return (safeProxy, delegationOwnerProxy, delegationGuard, protocolOwnerProxy);
     }
 }

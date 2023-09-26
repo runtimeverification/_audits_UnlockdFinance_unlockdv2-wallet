@@ -104,11 +104,6 @@ contract Config is Test {
         testNftPlatform = new TestNftPlatform(address(testNft));
         testPunksPlatform = new TestNftPlatform(address(testPunks));
 
-        delegationControllers.push(delegationController);
-
-        delegationRecipes = new DelegationRecipes();
-        allowedControllers = new AllowedControllers(address(aclManager), delegationControllers);
-
         protocolOwnerImpl = address(new ProtocolOwner(address(testPunks), address(aclManager)));
         // DelegationOwner implementation
         delegationOwnerImpl = address(
@@ -122,12 +117,19 @@ contract Config is Test {
 
         // DelegationGuard implementation
         delegationGuardImpl = address(new DelegationGuard(address(testPunks)));
-        protocolGuardImpl = address(new ProtocolGuard());
+        protocolGuardImpl = address(new ProtocolGuard(address(testPunks)));
         // deploy DelegationOwnerBeacon
         ownerBeacon = address(new UpgradeableBeacon(delegationOwnerImpl));
 
         // deploy DelegationOwnerBeacon
         protocolOwnerBeacon = address(new UpgradeableBeacon(protocolOwnerImpl));
+
+        delegationControllers.push(delegationController);
+        delegationControllers.push(protocolOwnerBeacon);
+        delegationControllers.push(0xe1AB8145F7E55DC933d51a18c793F901A3A0b276);
+
+        delegationRecipes = new DelegationRecipes();
+        allowedControllers = new AllowedControllers(address(aclManager), delegationControllers);
 
         // deploy DelegationGuardBeacon
         guardBeacon = address(new UpgradeableBeacon(delegationGuardImpl));

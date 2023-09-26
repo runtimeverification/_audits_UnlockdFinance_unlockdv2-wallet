@@ -28,7 +28,7 @@ contract DelegationOwnerTest is Config {
 
     function setUp() public {
         vm.startPrank(kakaroto);
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deploy(delegationController);
+        (safeProxy, delegationOwnerProxy, delegationGuardProxy, protocolOwnerBeacon) = delegationWalletFactory.deploy(delegationController);
 
         safe = GnosisSafe(payable(safeProxy));
         delegationOwner = DelegationOwner(delegationOwnerProxy);
