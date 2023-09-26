@@ -74,6 +74,7 @@ contract Config is Test {
     DelegationOwner public delegationOwner;
     DelegationGuard public delegationGuard;
     ProtocolGuard public protocolGuard;
+    ProtocolOwner public protocolOwner;
     address[] public lockControllers;
     address[] public delegationControllers;
 

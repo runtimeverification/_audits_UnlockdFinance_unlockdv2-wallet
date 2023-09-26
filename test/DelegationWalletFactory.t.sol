@@ -4,7 +4,14 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, Config } from "./utils/Config.sol";
+import { 
+    ProtocolOwner,
+    DelegationOwner, 
+    DelegationGuard, 
+    DelegationWalletFactory, 
+    TestNft, 
+    Config
+} from "./utils/Config.sol";
 
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
@@ -30,7 +37,7 @@ contract DelegationWalletFactoryTest is Config {
         assertEq(configuredGuard, delegationGuardProxy);
 
         assertEq(DelegationOwner(delegationOwnerProxy).owner(), kakaroto);
-        assertEq(address(DelegationOwner(delegationOwnerProxy).guard()), configuredGuard);
+        assertEq(address(ProtocolOwner(protocolOwnerBeacon).protocolGuard()), configuredGuard);
         assertEq(DelegationOwner(delegationOwnerProxy).safe(), safeProxy);
         assertTrue(DelegationOwner(delegationOwnerProxy).delegationControllers(delegationController));
     }

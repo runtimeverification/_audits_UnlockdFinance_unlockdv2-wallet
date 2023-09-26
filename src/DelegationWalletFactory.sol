@@ -141,8 +141,8 @@ contract DelegationWalletFactory {
 
         delegationOwner.initialize(guardBeacon, address(safeProxy), _owner, _delegationController, protocolOwnerProxy);
 
-        address delegationGuard = address(delegationOwner.guard());
-
+        address delegationGuard = address(protocolOwner.protocolGuard());
+        console.log("GUARD:::::", delegationGuard);
         console.log("SET WALLET");
         //////////////////////////////////////////
         // Save wallet
