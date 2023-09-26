@@ -92,8 +92,6 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, ISignatureValidator, IPr
             new BeaconProxy(_guardBeacon, abi.encodeWithSelector(ProtocolGuard.initialize.selector, _delegationOwner, address(this)))
         );
         protocolGuard = ProtocolGuard(guardProxy);
-        console.log("SAFE", _safe);
-        console.log("GUARD", address(protocolGuard));
         _setupGuard(_safe, Guard(protocolGuard));
     }
 

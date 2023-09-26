@@ -163,7 +163,7 @@ contract DelegationOwner is Initializable, ISignatureValidator, IDelegationOwner
         );
         guard = DelegationGuard(guardProxy);
 
-        _setupGuard(_safe, Guard(guard));
+        _setupGuard(_safe, guard);
     }
 
     /**
