@@ -6,8 +6,9 @@ interface IDelegationWalletRegistry {
     struct Wallet {
         address wallet;
         address owner;
+        address guard;
+        address guardOwner;
         address delegationOwner;
-        address delegationGuard;
         address protocolOwner;
     }
 
@@ -16,7 +17,8 @@ interface IDelegationWalletRegistry {
     function setWallet(
         address _wallet,
         address _owner,
-        address _delegationOwner,
+        address _guard,
+        address _guardOwner,
         address _delegationGuard,
         address _protocolOwner
     ) external;

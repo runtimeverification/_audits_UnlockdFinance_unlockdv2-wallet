@@ -5,12 +5,13 @@ import { Guard } from "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
 import { IACLManager } from "../../interfaces/IACLManager.sol";
-import { DelegationGuard } from "../guards/DelegationGuard.sol";
 import { AssetLogic } from "../logic/AssetLogic.sol";
 import { SafeLogic } from "../logic/SafeLogic.sol";
 import { Errors } from "../helpers/Errors.sol";
 
-contract BaseSafeOwner {
+import { ISignatureValidator } from "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
+
+contract BaseSafeOwner is ISignatureValidator {
     /**
      * @notice Execution protect
      */
@@ -29,7 +30,6 @@ contract BaseSafeOwner {
      * @notice Safe wallet address.
      */
     address public safe;
-
     /**
      * @notice The owner of the DelegationWallet, it is set only once upon initialization. Since this contract works
      * in tandem with DelegationGuard which do not allow to change the Safe owners, this owner can't change neither.
@@ -225,49 +225,20 @@ contract BaseSafeOwner {
         return success;
     }
 
-    function _setupGuard(address _safe, Guard _guard) internal {
-        // this requires this address to be a owner of the safe already
-        isExecuting = true;
-        bytes memory payload = abi.encodeWithSelector(IGnosisSafe.setGuard.selector, _guard);
-        currentTxHash = IGnosisSafe(payable(_safe)).getTransactionHash(
-            // Transaction info
-            safe,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            // Payment info
-            0,
-            0,
-            address(0),
-            payable(0),
-            // Signature info
-            IGnosisSafe(payable(_safe)).nonce()
-        );
+    /**
+     * @notice Validates that the signer is the current signature delegatee, or a valid transaction executed by a asset
+     * delegatee.
+     * @param _data Hash of the data signed on the behalf of address(msg.sender) which must be encoded as bytes,
+     * necessary to make it compatible how the Safe calls the function.
+     * @param _signature Signature byte array associated with _dataHash
+     */
+    function isValidSignature(
+        bytes memory _data,
+        bytes memory _signature
+    ) public view virtual override returns (bytes4) {
+        bytes32 txHash = abi.decode(_signature, (bytes32));
+        if (txHash != currentTxHash) revert Errors.DelegationOwner__isValidSignature_invalidExecSig();
 
-        // https://docs.gnosis-safe.io/contracts/signatures#contract-signature-eip-1271
-        bytes memory signature = abi.encodePacked(
-            abi.encode(address(this)), // r
-            abi.encode(uint256(65)), // s
-            bytes1(0), // v
-            abi.encode(currentTxHash.length),
-            currentTxHash
-        );
-
-        IGnosisSafe(_safe).execTransaction(
-            safe,
-            0,
-            payload,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0),
-            signature
-        );
-
-        isExecuting = false;
-        currentTxHash = bytes32(0);
+        return EIP1271_MAGIC_VALUE;
     }
 }

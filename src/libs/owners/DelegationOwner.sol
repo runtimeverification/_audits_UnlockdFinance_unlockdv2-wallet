@@ -2,14 +2,13 @@
 
 pragma solidity 0.8.19;
 
-import { Guard } from "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
 import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
 import { IAllowedControllers } from "../../interfaces/IAllowedControllers.sol";
 import { IACLManager } from "../../interfaces/IACLManager.sol";
-import { DelegationGuard } from "../guards/DelegationGuard.sol";
 import { DelegationRecipes } from "../recipes/DelegationRecipes.sol";
 
+import { TransactionGuard } from "../guards/TransactionGuard.sol";
 import { AssetLogic } from "../logic/AssetLogic.sol";
 import { SafeLogic } from "../logic/SafeLogic.sol";
 import { Errors } from "../helpers/Errors.sol";
@@ -24,7 +23,6 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
-import { ISignatureValidator } from "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
 
 import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
 
@@ -40,7 +38,7 @@ import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
  *
  * It should be use a proxy's implementation.
  */
-contract DelegationOwner is Initializable, ISignatureValidator, IDelegationOwner, BaseSafeOwner {
+contract DelegationOwner is Initializable, IDelegationOwner, BaseSafeOwner {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
 
@@ -62,7 +60,7 @@ contract DelegationOwner is Initializable, ISignatureValidator, IDelegationOwner
     /**
      * @notice The DelegationGuard address.
      */
-    DelegationGuard public guard;
+    TransactionGuard public guard;
 
     /**
      * @notice Stores the list of asset delegations. keccak256(address, nft id) => Delegation
@@ -131,20 +129,20 @@ contract DelegationOwner is Initializable, ISignatureValidator, IDelegationOwner
 
     /**
      * @notice Initializes the proxy state.
-     * @param _guardBeacon - The address of the beacon where the proxy gets the implementation address.
+     * @param _guard - The deployed guard
      * @param _safe - The DelegationWallet address, the GnosisSafe.
      * @param _owner - The owner of the DelegationWallet.
      * @param _delegationController - The address that acts as the delegation controller.
      * @param _protocolOwner - The address that acts as the delegation controller.
      */
     function initialize(
-        address _guardBeacon,
+        address _guard,
         address _safe,
         address _owner,
         address _delegationController,
         address _protocolOwner
     ) public initializer {
-        if (_guardBeacon == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
+        // if (_guard == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
         if (_safe == address(0)) revert Errors.DelegationGuard__initialize_invalidSafe();
         if (_owner == address(0)) revert Errors.DelegationGuard__initialize_invalidOwner();
 
@@ -154,16 +152,7 @@ contract DelegationOwner is Initializable, ISignatureValidator, IDelegationOwner
         if (_delegationController != address(0)) {
             _setDelegationController(_delegationController, true);
         }
-
-        address guardProxy = address(
-            new BeaconProxy(
-                _guardBeacon,
-                abi.encodeWithSelector(DelegationGuard.initialize.selector, address(this), _protocolOwner)
-            )
-        );
-        guard = DelegationGuard(guardProxy);
-
-        _setupGuard(_safe, Guard(guard));
+        guard = TransactionGuard(_guard);
     }
 
     /**

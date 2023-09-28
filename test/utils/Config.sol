@@ -6,8 +6,9 @@ import "forge-std/Test.sol";
 
 import { DelegationOwner, Errors } from "src/libs/owners/DelegationOwner.sol";
 import { ProtocolOwner } from "src/libs/owners/ProtocolOwner.sol";
-import { DelegationGuard } from "src/libs/guards/DelegationGuard.sol";
-import { ProtocolGuard } from "src/libs/guards/ProtocolGuard.sol";
+import { GuardOwner } from "src/libs/owners/GuardOwner.sol";
+
+import { TransactionGuard } from "src/libs/guards/TransactionGuard.sol";
 import { DelegationWalletFactory } from "src/DelegationWalletFactory.sol";
 import { DelegationRecipes } from "src/libs/recipes/DelegationRecipes.sol";
 import { DelegationWalletRegistry } from "src/DelegationWalletRegistry.sol";
@@ -53,27 +54,29 @@ contract Config is Test {
     TokenERC20 public token;
     IACLManager public aclManager;
 
+    address public guardImpl;
+    // Guards managers IMPL
+    address public guardOwnerImpl;
     address public delegationOwnerImpl;
-    address public delegationGuardImpl;
     address public protocolOwnerImpl;
-    address public protocolGuardImpl;
-    address public ownerBeacon;
+
     address public guardBeacon;
-    address public protocolGuardBeacon;
+    // Guards managers BEACONS
+    address public guardOwnerBeacon;
+    address public delegationOwnerBeacon;
     address public protocolOwnerBeacon;
+
     DelegationWalletFactory public delegationWalletFactory;
     DelegationRecipes public delegationRecipes;
+
     DelegationWalletRegistry public delegationWalletRegistry;
     AllowedControllers public allowedControllers;
 
     address public safeProxy;
-    address public delegationOwnerProxy;
-    address public delegationGuardProxy;
+    address public guard;
 
     GnosisSafe public safe;
     DelegationOwner public delegationOwner;
-    DelegationGuard public delegationGuard;
-    ProtocolGuard public protocolGuard;
     address[] public lockControllers;
     address[] public delegationControllers;
 
@@ -109,8 +112,15 @@ contract Config is Test {
         delegationRecipes = new DelegationRecipes();
         allowedControllers = new AllowedControllers(address(aclManager), delegationControllers);
 
+        ///////////////////////////////////////////
+        // IMPLEMENTATIONS
+        ///////////////////////////////////////////
+
+        // TransactionGuard implementation
+        guardImpl = address(new TransactionGuard(address(testPunks)));
+        // GUARD OWNERS
+        guardOwnerImpl = address(new GuardOwner(address(testPunks), address(aclManager)));
         protocolOwnerImpl = address(new ProtocolOwner(address(testPunks), address(aclManager)));
-        // DelegationOwner implementation
         delegationOwnerImpl = address(
             new DelegationOwner(
                 address(testPunks),
@@ -120,18 +130,18 @@ contract Config is Test {
             )
         );
 
-        // DelegationGuard implementation
-        delegationGuardImpl = address(new DelegationGuard(address(testPunks)));
-        protocolGuardImpl = address(new ProtocolGuard());
-        // deploy DelegationOwnerBeacon
-        ownerBeacon = address(new UpgradeableBeacon(delegationOwnerImpl));
+        ///////////////////////////////////////////
+        // BEACONS
+        ///////////////////////////////////////////
+        // deploy DelegationGuardBeacon
+        guardBeacon = address(new UpgradeableBeacon(guardImpl));
 
+        // deploy GuardOwnerBeacon
+        guardOwnerBeacon = address(new UpgradeableBeacon(guardOwnerImpl));
+        // deploy DelegationOwnerBeacon
+        delegationOwnerBeacon = address(new UpgradeableBeacon(delegationOwnerImpl));
         // deploy DelegationOwnerBeacon
         protocolOwnerBeacon = address(new UpgradeableBeacon(protocolOwnerImpl));
-
-        // deploy DelegationGuardBeacon
-        guardBeacon = address(new UpgradeableBeacon(delegationGuardImpl));
-        protocolGuardBeacon = address(new UpgradeableBeacon(protocolGuardImpl));
 
         delegationWalletRegistry = new DelegationWalletRegistry();
         delegationWalletFactory = new DelegationWalletFactory(
@@ -139,11 +149,12 @@ contract Config is Test {
             gnosisSafeTemplate,
             compatibilityFallbackHandler,
             guardBeacon,
-            ownerBeacon,
+            guardOwnerBeacon,
+            delegationOwnerBeacon,
             protocolOwnerBeacon,
-            protocolGuardBeacon,
             address(delegationWalletRegistry)
         );
+
         delegationWalletRegistry.setFactory(address(delegationWalletFactory));
         vm.deal(kakaroto, 100 ether);
         vm.deal(karpincho, 100 ether);

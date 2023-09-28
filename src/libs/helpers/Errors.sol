@@ -78,18 +78,27 @@ library Errors {
     error DelegationOwner__setLockController_notAllowedController();
 
     error DelegationOwner__batchSetLoanId_arityMismatch();
+    // ========== Guard Owner ===========
+    error GuardOwner__initialize_aclManager();
+    error GuardOwner__initialize_invalidGuardBeacon();
+    error GuardOwner__initialize_invalidSafe();
+    error GuardOwner__initialize_invalidOwner();
+    error GuardOwner__initialize_invalidDelegationOwner();
+    error GuardOwner__initialize_invalidProtocolOwner();
 
-    // ========== Delegation Guard ===========
-    error DelegationGuard__onlyDelegationOwner();
-    error DelegationGuard__initialize_invalidDelegationOwner();
-    error DelegationGuard__checkTransaction_noDelegateCall();
-    error DelegationGuard__checkLocked_noTransfer();
-    error DelegationGuard__checkLocked_noApproval();
-    error DelegationGuard__checkApproveForAll_noApprovalForAll();
-    error DelegationGuard__checkConfiguration_ownershipChangesNotAllowed();
-    error DelegationGuard__checkConfiguration_guardChangeNotAllowed();
-    error DelegationGuard__checkConfiguration_enableModuleNotAllowed();
-    error DelegationGuard__checkConfiguration_setFallbackHandlerNotAllowed();
+    // ========== Transaction Guard ===========
+    error TransactionGuard__onlyManagersOwner();
+    error TransactionGuard__initialize_invalidDelegationOwner();
+    error TransactionGuard__initialize_invalidProtocolOwner();
+    error TransactionGuard__checkTransaction_noDelegateCall();
+    error TransactionGuard__checkApproveForAll_noApprovalForAll();
+
+    error TransactionGuard__checkLocked_noTransfer();
+    error TransactionGuard__checkLocked_noApproval();
+    error TransactionGuard__checkConfiguration_ownershipChangesNotAllowed();
+    error TransactionGuard__checkConfiguration_guardChangeNotAllowed();
+    error TransactionGuard__checkConfiguration_enableModuleNotAllowed();
+    error TransactionGuard__checkConfiguration_setFallbackHandlerNotAllowed();
 
     // ========== Allowed Controllers ===========
     error AllowedCollections__setCollectionsAllowances_invalidAddress();

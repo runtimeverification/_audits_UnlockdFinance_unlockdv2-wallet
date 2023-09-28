@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import { DelegationOwner, DelegationGuard, DelegationWalletFactory, TestNft, Config } from "./utils/Config.sol";
+import { DelegationOwner, DelegationWalletFactory, TestNft, Config } from "./utils/Config.sol";
 
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
@@ -35,9 +35,10 @@ contract DelegationWalletFactoryTest is Config {
     // }
 
     function test_depploy_should_work_with_zero_controllers() public {
-        (safeProxy, delegationOwnerProxy, delegationGuardProxy) = delegationWalletFactory.deployFor(vegeta, address(0));
+        (address _safeProxy, address _guard, address _delegationOwner, address _productOwner) = delegationWalletFactory
+            .deployFor(vegeta, address(0));
 
-        assertEq(DelegationOwner(delegationOwnerProxy).owner(), vegeta);
-        assertEq(DelegationOwner(delegationOwnerProxy).aclManager(), address(aclManager));
+        assertEq(DelegationOwner(_delegationOwner).owner(), vegeta);
+        assertEq(DelegationOwner(_delegationOwner).aclManager(), address(aclManager));
     }
 }

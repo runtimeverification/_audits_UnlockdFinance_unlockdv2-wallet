@@ -3,14 +3,19 @@
 pragma solidity 0.8.19;
 
 import { console } from "forge-std/console.sol";
+
+import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { GnosisSafeProxyFactory, GnosisSafeProxy } from "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
+import { IGnosisSafe } from "./interfaces/IGnosisSafe.sol";
+import { TransactionGuard } from "./libs/guards/TransactionGuard.sol";
 import { IDelegationWalletRegistry } from "./interfaces/IDelegationWalletRegistry.sol";
 import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import { GuardOwner } from "./libs/owners/GuardOwner.sol";
 import { DelegationOwner } from "./libs/owners/DelegationOwner.sol";
 import { ProtocolOwner } from "./libs/owners/ProtocolOwner.sol";
 
@@ -35,19 +40,21 @@ contract DelegationWalletFactory {
      */
     address public immutable compatibilityFallbackHandler;
     /**
-     * @notice Stores the DelegationGuard beacon contract address.
+     * @notice Stores the TransactionGuard beacon contract address.
      */
     address public immutable guardBeacon;
     /**
+     * @notice Stores the GuardOwner beacon contract address.
+     */
+    address public immutable guardOwnerBeacon;
+    /**
      * @notice Stores the DelegationOwner beacon contract address.
      */
-    address public immutable ownerBeacon;
+    address public immutable delegationOwnerBeacon;
     /**
      * @notice Stores the DelegationOwner beacon contract address.
      */
     address public immutable protocolOwnerBeacon;
-
-    address public immutable protocolGuardBeacon;
     /**
      * @notice Stores the DelegationWalletRegistry contract address.
      */
@@ -56,8 +63,9 @@ contract DelegationWalletFactory {
     event WalletDeployed(
         address indexed safe,
         address indexed owner,
-        address indexed delegationOwner,
-        address delegationGuard,
+        address indexed guard,
+        address delegationOwner,
+        address protocolOwner,
         address sender
     );
 
@@ -66,25 +74,26 @@ contract DelegationWalletFactory {
         address _singleton,
         address _compatibilityFallbackHandler,
         address _guardBeacon,
-        address _ownerBeacon,
+        address _guardOwnerBeacon,
+        address _delegationOwnerBeacon,
         address _protocolOwnerBeacon,
-        address _protocolGuardBeacon,
         address _registry
     ) {
         gnosisSafeProxyFactory = _gnosisSafeProxyFactory;
         singleton = _singleton;
         compatibilityFallbackHandler = _compatibilityFallbackHandler;
         guardBeacon = _guardBeacon;
-        ownerBeacon = _ownerBeacon;
+        guardOwnerBeacon = _guardOwnerBeacon;
+        delegationOwnerBeacon = _delegationOwnerBeacon;
         protocolOwnerBeacon = _protocolOwnerBeacon;
-        protocolGuardBeacon = _protocolGuardBeacon;
+
         registry = _registry;
     }
 
     /**
      * @notice Deploys a new DelegationWallet with the msg.sender as the owner.
      */
-    function deploy(address _delegationController) external returns (address, address, address) {
+    function deploy(address _delegationController) external returns (address, address, address, address) {
         return deployFor(msg.sender, _delegationController);
     }
 
@@ -93,18 +102,25 @@ contract DelegationWalletFactory {
      * @param _owner - The owner's address.
      * @param _delegationController - Delegation controller owner
      */
-    function deployFor(address _owner, address _delegationController) public returns (address, address, address) {
+    function deployFor(
+        address _owner,
+        address _delegationController
+    ) public returns (address, address, address, address) {
         address safeProxy = address(
             GnosisSafeProxyFactory(gnosisSafeProxyFactory).createProxy(singleton, new bytes(0))
         );
 
-        address delegationOwnerProxy = address(new BeaconProxy(ownerBeacon, new bytes(0)));
+        // Proxy creation
+        address guardOwnerProxy = address(new BeaconProxy(guardOwnerBeacon, new bytes(0)));
+        address delegationOwnerProxy = address(new BeaconProxy(delegationOwnerBeacon, new bytes(0)));
         address protocolOwnerProxy = address(new BeaconProxy(protocolOwnerBeacon, new bytes(0)));
 
-        address[] memory owners = new address[](3);
+        // Set owners
+        address[] memory owners = new address[](4);
         owners[0] = _owner;
-        owners[1] = delegationOwnerProxy;
-        owners[2] = protocolOwnerProxy;
+        owners[1] = guardOwnerProxy;
+        owners[2] = delegationOwnerProxy;
+        owners[3] = protocolOwnerProxy;
 
         // setup owners and threshold, this should be done before delegationOwner.initialize because DelegationOwners
         // has to be an owner to be able to set the guard
@@ -119,35 +135,43 @@ contract DelegationWalletFactory {
             payable(address(0))
         );
 
-        console.log("PROTOCOL OWNER");
-        DelegationOwner delegationOwner = DelegationOwner(delegationOwnerProxy);
-        ProtocolOwner protocolOwner = ProtocolOwner(protocolOwnerProxy);
+        // Setup logic of the GUARD
+
         //////////////////////////////////////////
-        // Protocol Owner
-
-        protocolOwner.initialize(protocolGuardBeacon, address(safeProxy), _owner, address(delegationOwner));
-
-        console.log("DELEGATION OWNER");
+        // Initialize Owners Manager
         //////////////////////////////////////////
-        // Delegation Owner
+        // Guard OWNER
+        GuardOwner(guardOwnerProxy).initialize(
+            guardBeacon,
+            address(safeProxy),
+            _owner,
+            delegationOwnerProxy,
+            protocolOwnerProxy
+        );
+        address guard = address(GuardOwner(guardOwnerProxy).guard());
+        // Delegation OWNER
+        DelegationOwner(delegationOwnerProxy).initialize(
+            guard,
+            safeProxy,
+            _owner,
+            _delegationController,
+            protocolOwnerProxy
+        );
+        // Protocol OWNER
+        ProtocolOwner(protocolOwnerProxy).initialize(guard, address(safeProxy), _owner, delegationOwnerProxy);
 
-        delegationOwner.initialize(guardBeacon, address(safeProxy), _owner, _delegationController, protocolOwnerProxy);
-
-        address delegationGuard = address(delegationOwner.guard());
-
-        console.log("SET WALLET");
-        //////////////////////////////////////////
         // Save wallet
         IDelegationWalletRegistry(registry).setWallet(
             safeProxy,
             _owner,
+            guard,
+            guardOwnerProxy,
             delegationOwnerProxy,
-            delegationGuard,
             protocolOwnerProxy
         );
 
-        emit WalletDeployed(safeProxy, _owner, delegationOwnerProxy, delegationGuard, msg.sender);
+        emit WalletDeployed(safeProxy, _owner, guard, delegationOwnerProxy, protocolOwnerProxy, msg.sender);
 
-        return (safeProxy, delegationOwnerProxy, delegationGuard);
+        return (safeProxy, guard, delegationOwnerProxy, protocolOwnerProxy);
     }
 }

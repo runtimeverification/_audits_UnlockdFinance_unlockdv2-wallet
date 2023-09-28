@@ -2,15 +2,13 @@
 
 pragma solidity 0.8.19;
 
-import { Guard } from "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
 import { console } from "forge-std/console.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
 import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
 import { IACLManager } from "../../interfaces/IACLManager.sol";
 import { IProtocolOwner } from "../../interfaces/IProtocolOwner.sol";
 
-import { DelegationGuard } from "../guards/DelegationGuard.sol";
-import { ProtocolGuard } from "../guards/ProtocolGuard.sol";
+import { TransactionGuard } from "../guards/TransactionGuard.sol";
 import { DelegationOwner } from "./DelegationOwner.sol";
 import { AssetLogic } from "../logic/AssetLogic.sol";
 import { SafeLogic } from "../logic/SafeLogic.sol";
@@ -41,7 +39,7 @@ import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
  * It should be use a proxy's implementation.
  */
 contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
-    bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
+    // bytes32 public constant GUARD_STORAGE_SLOT = 0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8;
 
     DelegationOwner public delegationOwner;
     mapping(bytes32 => bytes32) loansIds;
@@ -49,7 +47,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
     /**
      * @notice The DelegationGuard address.
      */
-    ProtocolGuard public guard;
+    TransactionGuard public guard;
 
     ////////////////////////////////////////////////////////////////////////////////
     // Modifiers
@@ -74,13 +72,8 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
      * @param _owner - The owner of the DelegationWallet.
      * @param _delegationOwner - Use delegation owner
      */
-    function initialize(
-        address _guardBeacon,
-        address _safe,
-        address _owner,
-        address _delegationOwner
-    ) public initializer {
-        if (_guardBeacon == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
+    function initialize(address _guard, address _safe, address _owner, address _delegationOwner) public initializer {
+        // if (_guard == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
         if (_safe == address(0)) revert Errors.DelegationGuard__initialize_invalidSafe();
         if (_owner == address(0)) revert Errors.DelegationGuard__initialize_invalidOwner();
 
@@ -88,13 +81,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
         safe = _safe;
         owner = _owner;
 
-        address guardProxy = address(
-            new BeaconProxy(_guardBeacon, abi.encodeWithSelector(ProtocolGuard.initialize.selector, _delegationOwner))
-        );
-        guard = ProtocolGuard(guardProxy);
-        console.log("SAFE", _safe);
-        console.log("GUARD", address(guard));
-        _setupGuard(_safe, Guard(guard));
+        guard = TransactionGuard(_guard);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -202,7 +189,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
         oneTimeDelegation[to] = value;
     }
 
-    function isDelegatedExecution(address to) external returns (bool) {
+    function isDelegatedExecution(address to) external view returns (bool) {
         return oneTimeDelegation[to];
     }
 
@@ -283,7 +270,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
 
     function _setLoanId(bytes32 _assetId, bytes32 _loanId) internal {
         loansIds[_assetId] = _loanId;
-        DelegationGuard guard = delegationOwner.guard();
+
         // We update the guard from DelegationOwner
         if (_loanId == 0) {
             guard.unlockAsset(_assetId);

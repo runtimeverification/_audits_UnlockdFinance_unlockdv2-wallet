@@ -62,25 +62,29 @@ contract DelegationWalletRegistry is IDelegationWalletRegistry, Ownable {
      * @notice Sets a new deployed Wallet.
      * @param _wallet - The address of the DelegationWallet's Safe component.
      * @param _owner - The address of the DelegationWallet's owner component.
+     * @param _guard - The address of the DelegationWallet DelegationGuard component.
+     * @param _guardOwner - The address of the DelegationWallet DelegationGuard component.
      * @param _delegationOwner - The address of the DelegationWallet's DelegationOwner component.
-     * @param _delegationGuard - The address of the DelegationWallet DelegationGuard component.
      * @param _protocolOwner - The address of the protocol Owner component
      */
     function setWallet(
         address _wallet,
         address _owner,
+        address _guard,
+        address _guardOwner,
         address _delegationOwner,
-        address _delegationGuard,
         address _protocolOwner
     ) external onlyFactoryOrOwner {
         if (_wallet == address(0)) revert Errors.DelegationWalletRegistry__setWallet_invalidWalletAddress();
         if (_owner == address(0)) revert Errors.DelegationWalletRegistry__setWallet_invalidOwnerAddress();
+        if (_guard == address(0)) revert Errors.DelegationWalletRegistry__setWallet_invalidGuardAddress();
+        if (_guardOwner == address(0))
+            revert Errors.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress();
         if (_delegationOwner == address(0))
             revert Errors.DelegationWalletRegistry__setWallet_invalidDelegationOwnerAddress();
-        if (_delegationGuard == address(0)) revert Errors.DelegationWalletRegistry__setWallet_invalidGuardAddress();
         if (_protocolOwner == address(0))
             revert Errors.DelegationWalletRegistry__setWallet_invalidProtocolOwnerAddress();
-        wallets[_wallet] = Wallet(_wallet, _owner, _delegationOwner, _delegationGuard, _protocolOwner);
+        wallets[_wallet] = Wallet(_wallet, _owner, _guard, _guardOwner, _delegationOwner, _protocolOwner);
 
         walletsByOwner[_owner].add(_wallet);
     }
