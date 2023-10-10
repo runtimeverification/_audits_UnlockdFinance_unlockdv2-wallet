@@ -172,6 +172,6 @@ contract DelegationWalletFactory {
 
         emit WalletDeployed(safeProxy, _owner, guard, delegationOwnerProxy, protocolOwnerProxy, msg.sender);
 
-        return (safeProxy, guard, delegationOwnerProxy, protocolOwnerProxy);
+        return (safeProxy, delegationOwnerProxy, protocolOwnerProxy, guardOwnerProxy);
     }
 }

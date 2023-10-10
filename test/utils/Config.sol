@@ -74,6 +74,9 @@ contract Config is Test {
 
     address public safeProxy;
     address public guard;
+    address public delegationOwnerProxy;
+    address public protocolOwnerProxy;
+    address public guardOwnerProxy;
 
     GnosisSafe public safe;
     DelegationOwner public delegationOwner;

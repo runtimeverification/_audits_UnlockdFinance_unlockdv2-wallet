@@ -100,12 +100,12 @@ library Errors {
     error TransactionGuard__checkConfiguration_enableModuleNotAllowed();
     error TransactionGuard__checkConfiguration_setFallbackHandlerNotAllowed();
 
-    // ========== Allowed Controllers ===========
+    // ========== Allowed Collection ===========
     error AllowedCollections__setCollectionsAllowances_invalidAddress();
     error AllowedCollections__setCollectionsAllowances_arityMismatch();
+
     error AllowedControllers__setLockControllerAllowances_arityMismatch();
     error AllowedControllers__setDelegationControllerAllowances_arityMismatch();
-    error AllowedControllers__setLockControllerAllowance_invalidAddress();
     error AllowedControllers__setDelegationControllerAllowance_invalidAddress();
 
     // ========== Delegation Wallet Registry ===========
