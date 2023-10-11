@@ -80,6 +80,7 @@ contract Config is Test {
 
     GnosisSafe public safe;
     DelegationOwner public delegationOwner;
+    ProtocolOwner public protocolOwner;
     address[] public lockControllers;
     address[] public delegationControllers;
 

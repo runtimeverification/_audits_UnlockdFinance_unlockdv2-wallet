@@ -12,6 +12,8 @@ contract Adapter {
     }
 
     function sell(address _contract, uint256 _tokenId, address to) external {
+        require(TestNft(_contract).ownerOf(_tokenId) == msg.sender, "Ownable: caller is not the owner");
+
         TestNft(_contract).transferFrom(to, address(this), _tokenId);
         TokenERC20(_token).transfer(to, 1000);
     }
