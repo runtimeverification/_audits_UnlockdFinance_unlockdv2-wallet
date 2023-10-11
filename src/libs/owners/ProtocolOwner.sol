@@ -32,7 +32,7 @@ import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
  * @dev This contract contains the logic that enables asset/signature delegates to interact with a Gnosis Safe wallet.
  * In the case of assets delegates, it will allow them to execute functions though the Safe, only those registered
  * as allowed on the DelegationRecipes contract.
- * In the case of signatures it validates that a signature was made by the current delegatee.
+ * In the case of signatures it validates that a signature was made by the current delegate.
  * It is also used by the delegation controller to set delegations and the lock controller to lock, unlock and claim
  * assets.
  *
@@ -67,7 +67,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
 
     /**
      * @notice Initializes the proxy state.
-     
+
      * @param _safe - The DelegationWallet address, the GnosisSafe.
      * @param _owner - The owner of the DelegationWallet.
      * @param _delegationOwner - Use delegation owner
@@ -110,7 +110,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
 
     /**
      * @notice Execute a transaction through the GnosisSafe wallet.
-     * The sender should be the delegatee of the given asset and the function should be allowed for the collection.
+     * The sender should be the delegate of the given asset and the function should be allowed for the collection.
      * @param _asset - The delegated asset addresses.
      * @param _id - The delegated asset ids.
      * @param _to - Destination address of Safe transaction.
@@ -202,7 +202,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
     }
 
     /**
-     * @notice Return the LoanId asigned to a asset
+     * @notice Return the LoanId assigned to a asset
      *   0 means the asset is locked
      */
     function getLoanId(bytes32 index) external view returns (bytes32) {
@@ -210,7 +210,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
     }
 
     /**
-     * @notice set loan id assigned to a especific assetId
+     * @notice set loan id assigned to a specific assetId
      */
     function setLoanId(bytes32 _index, bytes32 _loanId) external onlyProtocol {
         _setLoanId(_index, _loanId);
@@ -250,7 +250,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
     }
 
     /**
-     * @notice batch function to set to differnt from 0 a group of assets
+     * @notice batch function to set to different from 0 a group of assets
      */
     function batchSetLoanId(bytes32[] calldata _assets, bytes32 _loanId) external onlyProtocol {
         uint256 cachedAssets = _assets.length;

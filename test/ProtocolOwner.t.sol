@@ -14,6 +14,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {GuardManager, GnosisSafe} from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import {Enum} from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {console} from "forge-std/console.sol";
@@ -53,7 +54,70 @@ contract ProtocolOwnerTest is Config {
         vm.stopPrank();
     }
 
+    function test_delegate_one_execution() public {
+        vm.startPrank(kakaroto);
+        protocolOwner.delegateOneExecution(address(kakaroto), true);
+        assertTrue(protocolOwner.isDelegatedExecution(address(kakaroto)));
+        vm.stopPrank();
+    }
+
+    function test_delegate_one_execution_non_protocol() public {
+        vm.startPrank(karpincho);
+
+        vm.expectRevert(Errors.Caller_notProtocol.selector);
+        protocolOwner.delegateOneExecution(address(kakaroto), true);
+        assertFalse(protocolOwner.isDelegatedExecution(address(kakaroto)));
+        vm.stopPrank();
+    }
+
+    function test_delegate_one_execution_zero_protocol() public {
+        vm.startPrank(kakaroto);
+
+        vm.expectRevert(Errors.ProtocolOwner__invalidDelegatedAddressAddress.selector);
+        protocolOwner.delegateOneExecution(address(0), true);
+        assertFalse(protocolOwner.isDelegatedExecution(address(kakaroto)));
+        vm.stopPrank();
+    }
+
+    function test_sell_approval_non_approved() public {
+        vm.assume(testNft.balanceOf(address(safeProxy)) == 1);
+        vm.assume(token.balanceOf(address(adapter)) == 1000);
+        vm.assume(token.balanceOf(address(safeProxy)) == 0);
+
+        vm.startPrank(kakaroto);
+
+        // WE no approve the transfers
+        vm.expectRevert(Errors.ProtocolOwner__invalidDelegatedAddressAddress.selector);
+        protocolOwner.approveSale(address(testNft), safeProxyNftId, address(token), 1000, address(adapter), 0);
+    }
+
+    function test_sell_approval_wrong_loanId() public {
+        vm.assume(testNft.balanceOf(address(safeProxy)) == 1);
+        vm.assume(token.balanceOf(address(adapter)) == 1000);
+        vm.assume(token.balanceOf(address(safeProxy)) == 0);
+
+        vm.startPrank(kakaroto);
+
+        protocolOwner.delegateOneExecution(address(kakaroto), true);
+        vm.expectRevert(Errors.DelegationOwner__wrongLoanId.selector);
+        protocolOwner.approveSale(address(testNft), safeProxyNftId, address(token), 1000, address(adapter), bytes32(uint256(0x11)));
+    }
+
     function test_sell_approval() public {
+        vm.assume(testNft.balanceOf(address(safeProxy)) == 1);
+        vm.assume(token.balanceOf(address(adapter)) == 1000);
+        vm.assume(token.balanceOf(address(safeProxy)) == 0);
+
+        vm.startPrank(kakaroto);
+
+        // WE approve the transfers
+        protocolOwner.delegateOneExecution(address(kakaroto), true);
+        protocolOwner.approveSale(address(testNft), safeProxyNftId, address(token), 1000, address(adapter), 0);
+        assertTrue(IERC721(address(testNft)).getApproved(safeProxyNftId) == address(adapter));
+        assertTrue(IERC20(address(token)).allowance(address(safeProxy), kakaroto) == 1000);
+    }
+
+    function test_sell() public {
         vm.assume(testNft.balanceOf(address(safeProxy)) == 1);
         vm.assume(token.balanceOf(address(adapter)) == 1000);
         vm.assume(token.balanceOf(address(safeProxy)) == 0);
@@ -89,7 +153,6 @@ contract ProtocolOwnerTest is Config {
         assertEq(token.balanceOf(address(safeProxy)), 1000);
         vm.stopPrank();
     }
-
 
 
 }
