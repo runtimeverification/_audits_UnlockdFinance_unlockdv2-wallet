@@ -144,23 +144,6 @@ contract DelegationOwnerPunksTest is Config {
         delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, 0);
     }
 
-//    function test_delegate_invalidExpiry(uint256 _duration) public {
-//        vm.assume(_duration > 10 days && _duration < 100 * 365 days);
-//
-//        bytes32 id = delegationOwner.assetId(address(testPunks), safeProxyPunkId);
-//
-//        vm.prank(karpincho);
-//        guardOwner.lockAsset(id);
-//
-//        assertTrue(guardOwner.isLocked(id));
-//
-//        vm.prank(delegationController);
-//
-//        vm.expectRevert(Errors.DelegationOwner__delegate_invalidExpiry.selector);
-//
-//        delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration + 1);
-//    }
-
     function test_delegate_should_work(uint256 _duration) public {
         vm.assume(_duration > 10 days && _duration < 100 * 365 days);
         vm.prank(delegationController);
@@ -357,6 +340,19 @@ contract DelegationOwnerPunksTest is Config {
         delegationOwner.delegateSignature(assets, notOwnedAssetIds, karpincho, duration);
     }
 
+    function test_delegateSignature_assetLocked() public {
+        uint256 duration = 10 days;
+
+        bytes32 id = delegationOwner.assetId(address(testPunks), safeProxyPunkId);
+        vm.prank(kakaroto);
+        protocolOwner.setLoanId(id, keccak256(abi.encode(100))); // Lock
+
+        vm.prank(delegationController);
+        vm.expectRevert(Errors.DelegationOwner__delegate_assetLocked.selector);
+
+        delegationOwner.delegateSignature(assets, assetIds, karpincho, duration);
+    }
+
     function test_delegateSignature_punksOfferedForSale() public {
         bytes memory payload = abi.encodeWithSignature("offerPunkForSale(uint256,uint256)", safeProxyPunkId, 1 ether);
         safe.execTransaction(
@@ -401,7 +397,7 @@ contract DelegationOwnerPunksTest is Config {
         assertEq(to, block.timestamp + duration);
     }
 
-//     // // end delegate signature
+// end delegate signature
     function test_endDelegateSignature_notDelegated() public {
         vm.expectRevert(Errors.DelegationOwner__delegationCreatorChecks_notDelegated.selector);
         delegationOwner.endDelegateSignature();
@@ -457,7 +453,7 @@ contract DelegationOwnerPunksTest is Config {
         assertFalse(delegationOwner.isAssetDelegated(address(testPunks), safeProxyPunkId));
     }
 
-//     // // isValidSignature
+    // isValidSignature
     function test_isValidSignature_with_off_chain_signature_should_work() public {
         uint256 duration = 30 days;
         vm.prank(delegationController);
@@ -524,7 +520,7 @@ contract DelegationOwnerPunksTest is Config {
         IGnosisSafe(address(safe)).isValidSignature(singData, signature);
     }
 
-//     // // execTransaction
+    // execTransaction
     function test_execTransaction_notDelegated() public {
         vm.prank(karpincho);
 
@@ -620,533 +616,131 @@ contract DelegationOwnerPunksTest is Config {
         assertEq(testPunksPlatform.count(), countBefore + 1);
     }
 
-//     // // loan
 
-//     // function test_lockAsset_onlyLoanController() public {
-//     //     vm.prank(karpincho);
+    function test_lockAsset_not_owned_nft() public {
+        bytes32 id = delegationOwner.assetId(address(testPunks), safeProxyPunkId);
+        vm.startPrank(address(0x2));
 
-//     //     vm.expectRevert(Errors.DelegationOwner__onlyLockController.selector);
+        vm.expectRevert(Errors.Caller_notProtocol.selector);
 
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + 10 days);
-//     // }
+        protocolOwner.setLoanId(id, 0);
+    }
 
-//     // function test_lockAsset_not_owned_nft(uint256 _duration) public {
-//     //     vm.assume(_duration > 0 && _duration < 100 * 365 days);
-//     //     vm.prank(karpincho);
+    function test_claimAsset_claimAsset_notLocked() public {
 
-//     //     vm.expectRevert(Errors.DelegationOwner__checkOwnedAndNotApproved_assetNotOwned.selector);
+        vm.startPrank(kakaroto);
 
-//     //     delegationOwner.lockAsset(address(testPunks), kakarotoPunkId, block.timestamp + _duration);
-//     // }
+        bytes32 id = delegationOwner.assetId(address(testPunks), safeProxyPunkId);
 
-//     // function test_lockAsset_punksOfferedForSale(uint256 _duration) public {
-//     //     vm.assume(_duration > 0 && _duration < 100 * 365 days);
-//     //     vm.prank(kakaroto);
+        protocolOwner.setLoanId(id, 0); // Unlock
+        assertTrue(protocolOwner.getLoanId(id) == 0);
+        assertFalse(protocolOwner.isAssetLocked(id));
 
-//     //     bytes memory payload = abi.encodeWithSignature("offerPunkForSale(uint256,uint256)", safeProxyPunkId, 1 ether);
-//     //     safe.execTransaction(
-//     //         address(testPunks),
-//     //         0,
-//     //         payload,
-//     //         Enum.Operation.Call,
-//     //         0,
-//     //         0,
-//     //         0,
-//     //         address(0),
-//     //         payable(0),
-//     //         getTransactionSignature(kakarotoKey, address(testPunks), payload, Enum.Operation.Call)
-//     //     );
+        delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, karpincho);
+        assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(karpincho));
 
-//     //     vm.prank(karpincho);
+        vm.stopPrank();
+    }
 
-//     //     vm.expectRevert(Errors.DelegationOwner__checkOwnedAndNotApproved_assetApproved.selector);
+    function test_claimAsset_assetNotClaimable_locked() public {
 
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-//     // }
+        vm.startPrank(kakaroto);
 
-//     // function test_lockAsset_assetLocked() public {
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + 10 days);
+        bytes32 id = delegationOwner.assetId(address(testPunks), safeProxyPunkId);
 
-//     //     vm.prank(karpincho);
-//     //     vm.expectRevert(Errors.DelegationOwner__lockAsset_assetLocked.selector);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + 20 days);
-//     // }
+        protocolOwner.setLoanId(id, keccak256(abi.encode(100))); // Lock
+        assertTrue(protocolOwner.getLoanId(id) == keccak256(abi.encode(100)));
+        assertTrue(protocolOwner.isAssetLocked(id));
 
-//     // function test_lockAsset_invalidClaimDate() public {
-//     //     vm.prank(karpincho);
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetLocked.selector);
+        delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, karpincho);
+        vm.stopPrank();
+    }
 
-//     //     vm.expectRevert(Errors.DelegationOwner__lockAsset_invalidClaimDate.selector);
+    function test_claimAsset_assetNotClaimable_asset_delegated_before_expiry(uint256 _duration) public {
+        vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, 0);
-//     // }
+        vm.prank(delegationController);
+        delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration - 1);
 
-//     // function test_lockAsset_assetDelegatedLonger(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 100 * 365 days);
+        vm.warp(block.timestamp + _duration - 2);
 
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration);
+        vm.prank(kakaroto);
 
-//     //     vm.prank(karpincho);
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
+        delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
 
-//     //     vm.expectRevert(Errors.DelegationOwner__checkClaimDate_assetDelegatedLonger.selector);
+    }
 
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration - 1);
-//     // }
+    function test_claimAsset_assetNotClaimable_asset_delegated_at_expiry(uint256 _duration) public {
+        vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
-//     // function test_lockAsset_signatureDelegatedLonger(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 100 * 365 days);
+        vm.prank(delegationController);
+        delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration - 1);
 
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegateSignature(assets, assetIds, karpincho, _duration);
+        vm.warp(block.timestamp + _duration - 1);
 
-//     //     vm.prank(karpincho);
+        vm.prank(kakaroto);
 
-//     //     vm.expectRevert(Errors.DelegationOwner__checkClaimDate_signatureDelegatedLonger.selector);
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
+        delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
+    }
 
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration - 1);
-//     // }
+    function test_claimAsset_assetNotClaimable_asset_included_in_signature_before_expiry(uint256 _duration) public {
+        vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
-//     // function test_lockAsset_should_work() public {
-//     //     vm.prank(karpincho);
+        vm.prank(delegationController);
+        delegationOwner.delegateSignature(assets, assetIds, karpincho, _duration - 1);
 
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + 10 days);
+        vm.warp(block.timestamp + _duration - 2);
 
-//     //     assertTrue(guardOwner.isLocked(address(testPunks), safeProxyPunkId));
-//     // }
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
 
-//     // function test_lockAsset_should_work_with_asset_delegated_shorter(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 100 * 365 days);
+        vm.prank(kakaroto);
+        delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
+    }
 
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration);
+    function test_claimAsset_assetNotClaimable_asset_included_in_signature_at_expiry(uint256 _duration) public {
+        vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
-//     //     vm.prank(karpincho);
+        vm.prank(delegationController);
+        delegationOwner.delegateSignature(assets, assetIds, karpincho, _duration - 1);
 
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration + 1);
+        vm.warp(block.timestamp + _duration - 1);
 
-//     //     assertTrue(guardOwner.isLocked(address(testPunks), safeProxyPunkId));
-//     // }
+        vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
 
-//     // function test_lockAsset_should_work_with_signature_delegated_shorter(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 100 * 365 days);
+        vm.prank(kakaroto);
+        delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
+    }
 
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegateSignature(assets, assetIds, karpincho, _duration);
+    function test_claimAsset_should_work_when_asset_delegated_expired(uint256 _duration) public {
+        vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
-//     //     vm.prank(karpincho);
+        vm.prank(delegationController);
+        delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration - 2);
 
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration + 1);
+        vm.warp(block.timestamp + _duration - 1);
 
-//     //     assertTrue(guardOwner.isLocked(address(testPunks), safeProxyPunkId));
-//     // }
+        vm.prank(kakaroto);
+        delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
 
-//     // // change claimDate
-//     // function test_change_ClaimDate_DelegationOwner__lockCreatorChecks_assetNotLocked(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
+        assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(this));
+    }
 
-//     //     vm.prank(karpincho);
-//     //     vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-//     // }
+    function test_claimAsset_should_work_when_asset_signature_delegated_expired(uint256 _duration) public {
+        vm.assume(_duration > 10 days && _duration < 10 * 365 days);
 
-//     // function test_change_ClaimDate_onlyLockCreator(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
+        vm.prank(delegationController);
+        delegationOwner.delegateSignature(assets, assetIds, karpincho, _duration - 2);
 
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
+        vm.warp(block.timestamp + _duration - 1);
 
-//     //     uint256 deleDuration = _duration - 5 days;
+        vm.prank(kakaroto);
+        delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
 
-//     //     vm.prank(kakaroto);
-//     //     vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, block.timestamp + deleDuration - 1);
-//     // }
-
-//     // function test_change_ClaimDate_assetDelegatedLonger(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 deleDuration = _duration - 5 days;
-
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, deleDuration);
-
-//     //     vm.prank(karpincho);
-//     //     vm.expectRevert(Errors.DelegationOwner__checkClaimDate_assetDelegatedLonger.selector);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, block.timestamp + deleDuration - 1);
-//     // }
-
-//     // function test_change_ClaimDate_signatureDelegatedLonger(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 deleDuration = _duration - 5 days;
-
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegateSignature(assets, assetIds, karpincho, deleDuration);
-
-//     //     vm.prank(karpincho);
-//     //     vm.expectRevert(Errors.DelegationOwner__checkClaimDate_signatureDelegatedLonger.selector);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, block.timestamp + deleDuration - 1);
-//     // }
-
-//     // function test_change_ClaimDate_should_work_extending_claimDate(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 newClaimDate = delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)) +
-//     //         1;
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, newClaimDate);
-
-//     //     assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)), newClaimDate);
-//     // }
-
-//     // function test_change_ClaimDate_should_work_reducing_claimDate(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 newClaimDate = delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)) -
-//     //         1;
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, newClaimDate);
-
-//     //     assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)), newClaimDate);
-//     // }
-
-//     // function test_change_ClaimDate_should_work_with_reducing_claimDate_to_current_timestamp(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 newClaimDate = block.timestamp;
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, newClaimDate);
-
-//     //     assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)), newClaimDate);
-//     // }
-
-//     // function test_change_ClaimDate_should_work_with_delegation_shorter_than_new_claimDate(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 deleDuration = _duration - 5 days;
-
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, deleDuration);
-
-//     //     uint256 newClaimDate = block.timestamp + deleDuration + 1;
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, newClaimDate);
-
-//     //     assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)), newClaimDate);
-//     // }
-
-//     // function test_change_ClaimDate_should_work_with_delegation_equal_than_new_claimDate(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 deleDuration = _duration - 5 days;
-
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, deleDuration);
-
-//     //     uint256 newClaimDate = block.timestamp + deleDuration;
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, newClaimDate);
-
-//     //     assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)), newClaimDate);
-//     // }
-
-//     // function test_change_ClaimDate_should_work_with_sig_delegation_shorter_than_new_claimDate(
-//     //     uint256 _duration
-//     // ) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 deleDuration = _duration - 5 days;
-
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegateSignature(assets, assetIds, karpincho, deleDuration);
-
-//     //     uint256 newClaimDate = block.timestamp + deleDuration + 1;
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, newClaimDate);
-
-//     //     assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)), newClaimDate);
-//     // }
-
-//     // function test_change_ClaimDate_should_work_with_sig_delegation_equal_than_new_claimDate(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 deleDuration = _duration - 5 days;
-
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegateSignature(assets, assetIds, karpincho, deleDuration);
-
-//     //     uint256 newClaimDate = block.timestamp + deleDuration;
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, newClaimDate);
-
-//     //     assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)), newClaimDate);
-//     // }
-
-//     // function test_change_ClaimDate_should_work_with_lock_creator_after_changing_lockController(
-//     //     uint256 _duration
-//     // ) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     uint256 newClaimDate = delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)) +
-//     //         1;
-
-//     //     vm.prank(kakaroto);
-//     //     delegationOwner.setLockController(karpincho, false);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.changeClaimDate(address(testPunks), safeProxyPunkId, newClaimDate);
-
-//     //     assertEq(delegationOwner.lockedAssets(AssetLogic.assetId(address(testPunks), safeProxyPunkId)), newClaimDate);
-//     // }
-
-//     // function test_unlockAsset_assetNotLocked(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
-//     //     delegationOwner.unlockAsset(address(testPunks), safeProxyPunkId);
-//     // }
-
-//     // function test_unlockAsset_onlyLockCreator(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     vm.prank(kakaroto);
-//     //     vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
-//     //     delegationOwner.unlockAsset(address(testPunks), safeProxyPunkId);
-//     // }
-
-//     // function test_unlockAsset_not_owned_nft() public {
-//     //     vm.prank(karpincho);
-
-//     //     vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
-
-//     //     delegationOwner.unlockAsset(address(testPunks), kakarotoPunkId);
-//     // }
-
-//     // function test_unlockAsset_should_work() public {
-//     //     vm.prank(karpincho);
-
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + 10 days);
-
-//     //     assertTrue(guardOwner.isLocked(address(testPunks), safeProxyPunkId));
-
-//     //     vm.prank(karpincho);
-
-//     //     delegationOwner.unlockAsset(address(testPunks), safeProxyPunkId);
-
-//     //     assertFalse(guardOwner.isLocked(address(testPunks), safeProxyPunkId));
-//     // }
-
-//     // function test_unlockAsset_should_work_with_lock_creator_after_changing_lockController(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     vm.prank(kakaroto);
-//     //     delegationOwner.setLockController(karpincho, false);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.unlockAsset(address(testPunks), safeProxyPunkId);
-
-//     //     assertFalse(guardOwner.isLocked(address(testPunks), safeProxyPunkId));
-//     // }
-
-//     // function test_claimAsset_assetNotLocked(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_assetNotLocked.selector);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, karpincho);
-//     // }
-
-//     // function test_claimAsset_onlyLockCreator(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     vm.prank(kakaroto);
-//     //     vm.expectRevert(Errors.DelegationOwner__lockCreatorChecks_onlyLockCreator.selector);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, karpincho);
-//     // }
-
-//     // function test_claimAsset_assetNotClaimable_asset_delegated_before_expiry(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration - 1);
-
-//     //     vm.warp(block.timestamp + _duration - 2);
-
-//     //     vm.prank(karpincho);
-
-//     //     vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
-//     // }
-
-//     // function test_claimAsset_assetNotClaimable_asset_delegated_at_expiry(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration - 1);
-
-//     //     vm.warp(block.timestamp + _duration - 1);
-
-//     //     vm.prank(karpincho);
-
-//     //     vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
-//     // }
-
-//     // function test_claimAsset_assetNotClaimable_asset_included_in_signature_before_expiry(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegateSignature(assets, assetIds, karpincho, _duration - 1);
-
-//     //     vm.warp(block.timestamp + _duration - 2);
-
-//     //     vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
-//     // }
-
-//     // function test_claimAsset_assetNotClaimable_asset_included_in_signature_at_expiry(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegateSignature(assets, assetIds, karpincho, _duration - 1);
-
-//     //     vm.warp(block.timestamp + _duration - 1);
-
-//     //     vm.expectRevert(Errors.DelegationOwner__claimAsset_assetNotClaimable.selector);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
-//     // }
-
-//     // function test_claimAsset_should_work_after_claim_date(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(safeProxy));
-
-//     //     vm.warp(block.timestamp + _duration);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
-
-//     //     assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(this));
-//     // }
-
-//     // function test_claimAsset_should_work_before_claim_date_no_delegation(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(safeProxy));
-
-//     //     vm.warp(block.timestamp + _duration - 1);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
-
-//     //     assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(this));
-//     // }
-
-//     // function test_claimAsset_should_work_when_asset_delegated_expired(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-//     //     vm.prank(delegationController);
-//     //     delegationOwner.delegate(address(testPunks), safeProxyPunkId, karpincho, _duration - 2);
-
-//     //     vm.warp(block.timestamp + _duration - 1);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
-
-//     //     assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(this));
-//     // }
-
-//     // function test_claimAsset_should_work_with_lock_creator_after_changing_lockController(uint256 _duration) public {
-//     //     vm.assume(_duration > 10 days && _duration < 10 * 365 days);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + _duration);
-
-//     //     vm.prank(kakaroto);
-//     //     delegationOwner.setLockController(karpincho, false);
-
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.claimAsset(address(testPunks), safeProxyPunkId, address(this));
-
-//     //     assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(this));
-//     // }
-
-//     // // utils
-
-//     // function test_isAssetLocked_should_work() public {
-//     //     assertFalse(delegationOwner.isAssetLocked(address(testPunks), safeProxyPunkId));
-//     //     vm.prank(karpincho);
-//     //     delegationOwner.lockAsset(address(testPunks), safeProxyPunkId, block.timestamp + 10 days);
-//     //     assertTrue(delegationOwner.isAssetLocked(address(testPunks), safeProxyPunkId));
-//     // }
+        assertEq(testPunks.punkIndexToAddress(safeProxyPunkId), address(this));
+    }
 
     function test_isSignatureDelegated_should_work() public {
         assertFalse(delegationOwner.isSignatureDelegated());
