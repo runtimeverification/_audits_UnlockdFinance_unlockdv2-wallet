@@ -134,8 +134,6 @@ contract ProtocolOwnerTest is Config {
 
         bytes memory payload = abi.encodeWithSignature("sell(address,uint256,address)", address(testNft), safeProxyNftId, address(safeProxy));
         protocolOwner.execTransaction(
-            address(0),
-            0,
             address(adapter),
             0,
             payload,

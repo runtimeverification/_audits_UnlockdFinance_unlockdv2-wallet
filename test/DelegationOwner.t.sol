@@ -576,8 +576,7 @@ contract DelegationOwnerTest is Config {
         assertEq(testNftPlatform.count(), countBefore + 1);
     }
 
-    function test_lockAsset_not_owned_nft(uint256 _duration) public {
-        vm.assume(_duration > 0 && _duration < 100 * 365 days);
+    function test_lockAsset_not_owned_nft() public {
         bytes32 id = delegationOwner.assetId(address(testNft), safeProxyNftId);
         vm.startPrank(address(0x2));
 
@@ -586,8 +585,7 @@ contract DelegationOwnerTest is Config {
         protocolOwner.setLoanId(id, 0);
     }
 
-    function test_claimAsset_claimAsset_notLocked(uint256 _duration) public {
-        vm.assume(_duration > 10 days && _duration < 10 * 365 days);
+    function test_claimAsset_claimAsset_notLocked() public {
 
         vm.startPrank(kakaroto);
 
@@ -602,8 +600,7 @@ contract DelegationOwnerTest is Config {
         vm.stopPrank();
     }
 
-    function test_claimAsset_assetNotClaimable_locked(uint256 _duration) public {
-        vm.assume(_duration > 10 days && _duration < 10 * 365 days);
+    function test_claimAsset_assetNotClaimable_locked() public {
 
         vm.startPrank(kakaroto);
 

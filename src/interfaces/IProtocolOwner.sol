@@ -37,8 +37,6 @@ interface IProtocolOwner {
 
     // Delegatee Functions
     function execTransaction(
-        address _asset,
-        uint256 _assetId,
         address _to,
         uint256 _value,
         bytes calldata _data,

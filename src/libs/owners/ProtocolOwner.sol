@@ -111,8 +111,6 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
     /**
      * @notice Execute a transaction through the GnosisSafe wallet.
      * The sender should be the delegate of the given asset and the function should be allowed for the collection.
-     * @param _asset - The delegated asset addresses.
-     * @param _id - The delegated asset ids.
      * @param _to - Destination address of Safe transaction.
      * @param _value - Ether value of Safe transaction.
      * @param _data - Data payload of Safe transaction.
@@ -124,8 +122,6 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
      * @param _refundReceiver - Address of receiver of gas payment (or 0 if tx.origin).
      */
     function execTransaction(
-        address _asset,
-        uint256 _id,
         address _to,
         uint256 _value,
         bytes calldata _data,
