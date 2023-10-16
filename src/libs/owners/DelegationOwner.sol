@@ -2,29 +2,29 @@
 
 pragma solidity 0.8.19;
 
-import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
-import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
-import { IAllowedControllers } from "../../interfaces/IAllowedControllers.sol";
-import { IACLManager } from "../../interfaces/IACLManager.sol";
-import { DelegationRecipes } from "../recipes/DelegationRecipes.sol";
+import {IGnosisSafe} from "../../interfaces/IGnosisSafe.sol";
+import {ICryptoPunks} from "../../interfaces/ICryptoPunks.sol";
+import {IAllowedControllers} from "../../interfaces/IAllowedControllers.sol";
+import {IACLManager} from "../../interfaces/IACLManager.sol";
+import {DelegationRecipes} from "../recipes/DelegationRecipes.sol";
 
-import { TransactionGuard } from "../guards/TransactionGuard.sol";
-import { AssetLogic } from "../logic/AssetLogic.sol";
-import { SafeLogic } from "../logic/SafeLogic.sol";
-import { Errors } from "../helpers/Errors.sol";
+import {TransactionGuard} from "../guards/TransactionGuard.sol";
+import {AssetLogic} from "../logic/AssetLogic.sol";
+import {SafeLogic} from "../logic/SafeLogic.sol";
+import {Errors} from "../helpers/Errors.sol";
 
-import { IDelegationOwner } from "../../interfaces/IDelegationOwner.sol";
+import {IDelegationOwner} from "../../interfaces/IDelegationOwner.sol";
 
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import {Enum} from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
+import {GnosisSafe} from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
-import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
+import {BaseSafeOwner} from "../base/BaseSafeOwner.sol";
 
 /**
  * @title DelegationOwner
@@ -142,7 +142,7 @@ contract DelegationOwner is Initializable, IDelegationOwner, BaseSafeOwner {
         address _delegationController,
         address _protocolOwner
     ) public initializer {
-        // if (_guard == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
+        if (_guard == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
         if (_safe == address(0)) revert Errors.DelegationGuard__initialize_invalidSafe();
         if (_owner == address(0)) revert Errors.DelegationGuard__initialize_invalidOwner();
 
@@ -328,7 +328,7 @@ contract DelegationOwner is Initializable, IDelegationOwner, BaseSafeOwner {
 
         isExecuting = true;
         currentTxHash = IGnosisSafe(payable(safe)).getTransactionHash(
-            // Transaction info
+        // Transaction info
             _to,
             _value,
             _data,
@@ -462,10 +462,6 @@ contract DelegationOwner is Initializable, IDelegationOwner, BaseSafeOwner {
         return (_delegation.from <= block.timestamp && block.timestamp <= _delegation.to);
     }
 
-    function _getAllowedFunctionsKey(Delegation storage _delegation) internal view returns (bytes32) {
-        return keccak256(abi.encodePacked(_delegation.delegatee, _delegation.from, _delegation.to));
-    }
-
     function _checkOwnedAndNotApproved(address _asset, uint256 _id) internal view {
         if (_asset == cryptoPunks) {
             // safe should be owner
@@ -484,18 +480,6 @@ contract DelegationOwner is Initializable, IDelegationOwner, BaseSafeOwner {
             if (IERC721(_asset).getApproved(_id) != address(0))
                 revert Errors.DelegationOwner__checkOwnedAndNotApproved_assetApproved();
         }
-    }
-
-    function _checkClaimDate(bytes32 _id, uint256 _claimDate) internal view {
-        Delegation storage delegation = delegations[_id];
-
-        if (_isDelegating(delegation) && delegation.to > _claimDate)
-            revert Errors.DelegationOwner__checkClaimDate_assetDelegatedLonger();
-        if (
-            _isDelegating(signatureDelegation) &&
-            signatureDelegationAssetsIds[currentSignatureDelegationAssets].contains(_id) &&
-            signatureDelegation.to > _claimDate
-        ) revert Errors.DelegationOwner__checkClaimDate_signatureDelegatedLonger();
     }
 
     function _delegationCreatorChecks(Delegation storage _delegation) internal view {

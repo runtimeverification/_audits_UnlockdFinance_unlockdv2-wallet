@@ -4,12 +4,14 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import {DelegationOwner, ProtocolOwner, DelegationWalletFactory, TestNft, TestNftPlatform, Config, Errors} from "./utils/Config.sol";
+import {DelegationOwner, ProtocolOwner, DelegationWalletFactory,GuardOwner, DelegationOwner, TestNft, TestNftPlatform, Config, Errors} from "./utils/Config.sol";
 import {Adapter} from "./mocks/Adapter.sol";
 
 import {IGnosisSafe} from "../src/interfaces/IGnosisSafe.sol";
 import {AssetLogic} from "../src/libs/logic/AssetLogic.sol";
 
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {GuardManager, GnosisSafe} from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import {Enum} from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
@@ -35,6 +37,7 @@ contract ProtocolOwnerTest is Config {
 
         safe = GnosisSafe(payable(safeProxy));
         protocolOwner = ProtocolOwner(protocolOwnerProxy);
+        delegationOwner = DelegationOwner(delegationOwnerProxy);
 
         safeProxyNftId = testNft.mint(
             address(safeProxy),
@@ -152,5 +155,82 @@ contract ProtocolOwnerTest is Config {
         vm.stopPrank();
     }
 
+    function test_initialize_exceptions() public {
+        vm.startPrank(kakaroto);
+
+        vm.expectRevert("Initializable: contract is already initialized");
+        protocolOwner.initialize(address(0), address(0), address(0), address(0));
+
+        address _protocolOwnerBeacon = address(new UpgradeableBeacon(protocolOwnerImpl));
+        address _protocolOwnerProxy = address(new BeaconProxy(_protocolOwnerBeacon, new bytes(0)));
+
+        vm.expectRevert(Errors.DelegationGuard__initialize_invalidGuardBeacon.selector);
+        ProtocolOwner(_protocolOwnerProxy).initialize(address(0), address(0), address(0), address(0));
+
+        address guard = address(GuardOwner(guardOwnerProxy).guard());
+
+        vm.expectRevert(Errors.DelegationGuard__initialize_invalidSafe.selector);
+        ProtocolOwner(_protocolOwnerProxy).initialize(guard, address(0), address(0), address(0));
+
+        vm.expectRevert(Errors.DelegationGuard__initialize_invalidOwner.selector);
+        ProtocolOwner(_protocolOwnerProxy).initialize(guard, address(safeProxy), address(0), address(0));
+
+        vm.stopPrank();
+    }
+
+    function test_changeOwner() public {
+        vm.startPrank(kakaroto);
+        protocolOwner.changeOwner(address(testNft), safeProxyNftId, address(kakaroto));
+        assertEq(testNft.ownerOf(safeProxyNftId), kakaroto);
+        vm.stopPrank();
+    }
+
+    function test_changeOwner_not_protocol() public {
+        vm.startPrank(karpincho);
+        vm.expectRevert(Errors.Caller_notProtocol.selector);
+        protocolOwner.changeOwner(address(testNft), safeProxyNftId, address(kakaroto));
+        assertEq(testNft.ownerOf(safeProxyNftId), address(safe));
+        vm.stopPrank();
+    }
+
+    function test_batch_setLoanId() public {
+        uint256 safeProxyNftId_two = testNft.mint(
+            address(safeProxy),
+            "ipfs://bafybeihpjhkeuiq3k6nqa3fkgeigeri7iebtrsuyuey5y6vy36n345xmbi/3"
+        );
+
+        vm.startPrank(kakaroto);
+        bytes32[] memory ids = new bytes32[](2);
+        ids[0] = delegationOwner.assetId(address(testNft), safeProxyNftId);
+        ids[1] = delegationOwner.assetId(address(testNft), safeProxyNftId_two);
+
+        protocolOwner.batchSetLoanId(ids, keccak256(abi.encode(100)));
+        for (uint i = 0; i <= ids.length - 1; i++) {
+            assertTrue(protocolOwner.getLoanId(ids[i]) == keccak256(abi.encode(100)));
+        }
+
+        protocolOwner.batchSetToZeroLoanId(ids);
+        for (uint i = 0; i <= ids.length - 1; i++) {
+            assertTrue(protocolOwner.getLoanId(ids[i]) == 0);
+        }
+        vm.stopPrank();
+    }
+
+
+    function test_batch_setLoanId_already_done() public {
+        vm.startPrank(kakaroto);
+        bytes32[] memory ids = new bytes32[](1);
+        ids[0] = delegationOwner.assetId(address(testNft), safeProxyNftId);
+
+        protocolOwner.batchSetLoanId(ids, keccak256(abi.encode(100)));
+        vm.expectRevert(Errors.DelegationOwner__assetAlreadyLocked.selector);
+        protocolOwner.batchSetLoanId(ids, keccak256(abi.encode(100)));
+
+        protocolOwner.batchSetToZeroLoanId(ids);
+        vm.expectRevert(Errors.DelegationOwner__assetNotLocked.selector);
+        protocolOwner.batchSetToZeroLoanId(ids);
+
+        vm.stopPrank();
+    }
 
 }

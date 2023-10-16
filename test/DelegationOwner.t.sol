@@ -14,6 +14,8 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {GuardManager, GnosisSafe} from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import {Enum} from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -170,7 +172,6 @@ contract DelegationOwnerTest is Config {
         vm.assume(_duration > 10 days && _duration < 100 * 365 days);
 
         address guard = address(GuardOwner(guardOwnerProxy).guard());
-
         vm.expectCall(
             address(guard),
             abi.encodeWithSelector(
@@ -226,7 +227,7 @@ contract DelegationOwnerTest is Config {
         delegationOwner.delegate(address(testNft), safeProxyNftId, karpincho, 10 days);
 
         address guard = address(GuardOwner(guardOwnerProxy).guard());
-
+        console.log("guard", guard);
         vm.expectCall(
             address(guard),
             abi.encodeWithSelector(
@@ -614,4 +615,28 @@ contract DelegationOwnerTest is Config {
         delegationOwner.claimAsset(address(testNft), safeProxyNftId, karpincho);
         vm.stopPrank();
     }
+
+    function test_initialize_exceptions() public {
+        vm.startPrank(kakaroto);
+
+        vm.expectRevert("Initializable: contract is already initialized");
+        delegationOwner.initialize(address(0), address(0), address(0), address(0), address(0));
+
+        address _delegationOwnerBeacon = address(new UpgradeableBeacon(delegationOwnerImpl));
+        address _delegationOwnerProxy = address(new BeaconProxy(_delegationOwnerBeacon, new bytes(0)));
+
+        vm.expectRevert(Errors.DelegationGuard__initialize_invalidGuardBeacon.selector);
+        DelegationOwner(_delegationOwnerProxy).initialize(address(0), address(0), address(0), address(0), address(0));
+
+        address guard = address(GuardOwner(guardOwnerProxy).guard());
+
+        vm.expectRevert(Errors.DelegationGuard__initialize_invalidSafe.selector);
+        DelegationOwner(_delegationOwnerProxy).initialize(guard, address(0), address(0), address(0), address(0));
+
+        vm.expectRevert(Errors.DelegationGuard__initialize_invalidOwner.selector);
+        DelegationOwner(_delegationOwnerProxy).initialize(guard, address(safeProxy), address(0), address(0), address(0));
+
+        vm.stopPrank();
+    }
+
 }

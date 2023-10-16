@@ -13,3 +13,7 @@ artifacts
 typechain-types/
 .env.local
 .env
+
+# Test coverage
+lcov.info
+report

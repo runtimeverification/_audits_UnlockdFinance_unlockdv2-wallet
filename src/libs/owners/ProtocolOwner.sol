@@ -73,7 +73,7 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
      * @param _delegationOwner - Use delegation owner
      */
     function initialize(address _guard, address _safe, address _owner, address _delegationOwner) public initializer {
-        // if (_guard == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
+        if (_guard == address(0)) revert Errors.DelegationGuard__initialize_invalidGuardBeacon();
         if (_safe == address(0)) revert Errors.DelegationGuard__initialize_invalidSafe();
         if (_owner == address(0)) revert Errors.DelegationGuard__initialize_invalidOwner();
 
