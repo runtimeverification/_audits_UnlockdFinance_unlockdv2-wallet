@@ -533,8 +533,14 @@ contract DelegationOwnerTest is Config {
         vm.warp(block.timestamp + 10);
 
         vm.prank(karpincho);
+        assertFalse(delegationOwner.isAllowedFunction(
+            address(testNft),
+            address(testNftPlatform),
+            AssetLogic.getSelector(abi.encodeWithSelector(TestNftPlatform.notAllowedFunction.selector)))
+        );
         vm.expectRevert(Errors.DelegationOwner__execTransaction_notAllowedFunction.selector);
 
+        vm.prank(karpincho);
         delegationOwner.execTransaction(
             address(testNft),
             safeProxyNftId,
@@ -560,6 +566,13 @@ contract DelegationOwnerTest is Config {
 
         vm.prank(karpincho);
 
+        assertTrue(delegationOwner.isAllowedFunction(
+            address(testNft),
+            address(testNftPlatform),
+            AssetLogic.getSelector(abi.encodeWithSelector(TestNftPlatform.allowedFunction.selector)))
+        );
+
+        vm.prank(karpincho);
         bool success = delegationOwner.execTransaction(
             address(testNft),
             safeProxyNftId,
