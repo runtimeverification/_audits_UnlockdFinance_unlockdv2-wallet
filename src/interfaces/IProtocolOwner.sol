@@ -49,7 +49,7 @@ interface IProtocolOwner {
 
     function delegateOneExecution(address to, bool value) external;
 
-    function isDelegatedExecution(address to) external returns (bool);
+    function isDelegatedExecution(address to) external view returns (bool);
 
     function isAssetLocked(bytes32 _id) external view returns (bool);
 
@@ -59,7 +59,7 @@ interface IProtocolOwner {
 
     function changeOwner(address _asset, uint256 _id, address _newOwner) external;
 
-    function getLoanId(bytes32 _assetId) external returns (bytes32);
+    function getLoanId(bytes32 _assetId) external view returns (bytes32);
 
     function setLoanId(bytes32 _assetId, bytes32 _loanId) external;
 }
