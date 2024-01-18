@@ -236,6 +236,7 @@ contract BaseSafeOwner is ISignatureValidator {
         bytes memory _data,
         bytes memory _signature
     ) public view virtual override returns (bytes4) {
+        _data;
         bytes32 txHash = abi.decode(_signature, (bytes32));
         if (txHash != currentTxHash) revert Errors.DelegationOwner__isValidSignature_invalidExecSig();
 

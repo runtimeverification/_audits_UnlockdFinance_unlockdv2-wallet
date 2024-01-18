@@ -66,7 +66,9 @@ library SafeLogic {
         uint256 _amount,
         address _receiver,
         address _safe
-    ) internal view returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
+        _asset;
+        _safe;
         return abi.encodeWithSelector(IERC20.approve.selector, _receiver, _amount);
     }
 }
