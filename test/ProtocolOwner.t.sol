@@ -4,22 +4,22 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 
-import {DelegationOwner, ProtocolOwner, DelegationWalletFactory,GuardOwner, DelegationOwner, TestNft, TestNftPlatform, Config, Errors} from "./utils/Config.sol";
-import {Adapter} from "./mocks/Adapter.sol";
+import { DelegationOwner, ProtocolOwner, DelegationWalletFactory, GuardOwner, DelegationOwner, TestNft, TestNftPlatform, Config, Errors } from "./utils/Config.sol";
+import { Adapter } from "./mocks/Adapter.sol";
 
-import {IGnosisSafe} from "../src/interfaces/IGnosisSafe.sol";
-import {AssetLogic} from "../src/libs/logic/AssetLogic.sol";
+import { IGnosisSafe } from "../src/interfaces/IGnosisSafe.sol";
+import { AssetLogic } from "../src/libs/logic/AssetLogic.sol";
 
-import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {GuardManager, GnosisSafe} from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
-import {Enum} from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { GuardManager, GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import {console} from "forge-std/console.sol";
+import { console } from "forge-std/console.sol";
 
 contract ProtocolOwnerTest is Config {
     event ExecutionSuccess(bytes32 txHash, uint256 payment);
@@ -33,7 +33,9 @@ contract ProtocolOwnerTest is Config {
 
     function setUp() public {
         vm.startPrank(kakaroto);
-        (safeProxy, delegationOwnerProxy, protocolOwnerProxy, guardOwnerProxy) = delegationWalletFactory.deploy(delegationController);
+        (safeProxy, delegationOwnerProxy, protocolOwnerProxy, guardOwnerProxy) = delegationWalletFactory.deploy(
+            delegationController
+        );
 
         safe = GnosisSafe(payable(safeProxy));
         protocolOwner = ProtocolOwner(protocolOwnerProxy);
@@ -103,7 +105,14 @@ contract ProtocolOwnerTest is Config {
 
         protocolOwner.delegateOneExecution(address(kakaroto), true);
         vm.expectRevert(Errors.DelegationOwner__wrongLoanId.selector);
-        protocolOwner.approveSale(address(testNft), safeProxyNftId, address(token), 1000, address(adapter), bytes32(uint256(0x11)));
+        protocolOwner.approveSale(
+            address(testNft),
+            safeProxyNftId,
+            address(token),
+            1000,
+            address(adapter),
+            bytes32(uint256(0x11))
+        );
     }
 
     function test_sell_approval() public {
@@ -135,18 +144,13 @@ contract ProtocolOwnerTest is Config {
         vm.expectRevert("Ownable: caller is not the owner");
         adapter.sell(address(testNft), safeProxyNftId, address(safeProxy));
 
-        bytes memory payload = abi.encodeWithSignature("sell(address,uint256,address)", address(testNft), safeProxyNftId, address(safeProxy));
-        protocolOwner.execTransaction(
-            address(adapter),
-            0,
-            payload,
-            0,
-            0,
-            0,
-            address(0),
-            payable(0)
+        bytes memory payload = abi.encodeWithSignature(
+            "sell(address,uint256,address)",
+            address(testNft),
+            safeProxyNftId,
+            address(safeProxy)
         );
-
+        protocolOwner.execTransaction(address(adapter), 0, payload, 0, 0, 0, address(0), payable(0));
 
         assertEq(testNft.balanceOf(address(safeProxy)), 0);
         assertEq(testNft.balanceOf(address(adapter)), 1);
@@ -216,6 +220,26 @@ contract ProtocolOwnerTest is Config {
         vm.stopPrank();
     }
 
+    function test_safeSetLoanId() public {
+        uint256 safeProxyNftId_two = testNft.mint(
+            address(safeProxy),
+            "ipfs://bafybeihpjhkeuiq3k6nqa3fkgeigeri7iebtrsuyuey5y6vy36n345xmbi/3"
+        );
+        vm.startPrank(address(safeProxy));
+        testNft.approve(makeAddr("dummy"), safeProxyNftId_two);
+        assertEq(testNft.getApproved(safeProxyNftId_two), makeAddr("dummy"));
+        vm.stopPrank();
+        vm.startPrank(kakaroto);
+
+        protocolOwner.safeSetLoanId(address(testNft), safeProxyNftId_two, keccak256(abi.encode(100)));
+
+        assertTrue(
+            protocolOwner.getLoanId(delegationOwner.assetId(address(testNft), safeProxyNftId_two)) ==
+                keccak256(abi.encode(100))
+        );
+        assertEq(testNft.getApproved(safeProxyNftId_two), address(0));
+        vm.stopPrank();
+    }
 
     function test_batch_setLoanId_already_done() public {
         vm.startPrank(kakaroto);
@@ -232,5 +256,4 @@ contract ProtocolOwnerTest is Config {
 
         vm.stopPrank();
     }
-
 }
