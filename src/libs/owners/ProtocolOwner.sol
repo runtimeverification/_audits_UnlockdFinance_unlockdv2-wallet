@@ -214,6 +214,18 @@ contract ProtocolOwner is Initializable, BaseSafeOwner, IProtocolOwner {
     }
 
     /**
+     * @notice set loan id assigned to a specific assetId
+     */
+    function safeSetLoanId(address _asset, uint256 _id, bytes32 _loanId) external onlyProtocol {
+        bytes32 id = AssetLogic.assetId(_asset, _id);
+        // Reset approve
+        _approveAsset(_asset, _id, address(0));
+        // Lock asset
+        _setLoanId(id, _loanId);
+        emit SetLoanId(id, _loanId);
+    }
+
+    /**
      * @notice change the current ownership of a asset
      */
     function changeOwner(address _asset, uint256 _id, address _newOwner) external onlyProtocol {
