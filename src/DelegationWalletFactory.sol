@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.19;
 
-import { console } from "forge-std/console.sol";
-
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { GnosisSafeProxyFactory, GnosisSafeProxy } from "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";

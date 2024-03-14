@@ -25,6 +25,10 @@ contract TestNft is ERC721URIStorage {
         return tokenId;
     }
 
+    function burn(uint256 tokenId) external {
+        _burn(tokenId);
+    }
+
     function transferFrom(address from, address to, uint256 tokenId) public override {
         console.log("MSG SENDER", msg.sender);
         super.transferFrom(from, to, tokenId);

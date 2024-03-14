@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.19;
 
-import { console } from "forge-std/console.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
 import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
 import { IACLManager } from "../../interfaces/IACLManager.sol";

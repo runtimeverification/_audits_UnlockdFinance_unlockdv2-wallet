@@ -95,6 +95,7 @@ library Errors {
 
     error TransactionGuard__checkLocked_noTransfer();
     error TransactionGuard__checkLocked_noApproval();
+    error TransactionGuard__checkLocked_noBurn();
     error TransactionGuard__checkConfiguration_ownershipChangesNotAllowed();
     error TransactionGuard__checkConfiguration_guardChangeNotAllowed();
     error TransactionGuard__checkConfiguration_enableModuleNotAllowed();

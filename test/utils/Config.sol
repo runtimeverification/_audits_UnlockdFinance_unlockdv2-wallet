@@ -37,6 +37,9 @@ contract Config is Test {
     uint256 public vegetaKey = 4;
     address public vegeta = vm.addr(vegetaKey);
 
+    uint256 public kikiKey = 123;
+    address public kiki = vm.addr(kikiKey);
+
     uint256 public delegationControllerKey = 5;
     address public delegationController = vm.addr(delegationControllerKey);
 

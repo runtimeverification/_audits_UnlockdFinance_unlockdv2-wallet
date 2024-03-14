@@ -2,18 +2,17 @@
 
 pragma solidity 0.8.19;
 
-import { console } from "forge-std/console.sol";
-
 import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import { IERC165 } from "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
 import { Guard } from "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
 import { OwnerManager, GuardManager } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import { DelegationOwner } from "../owners/DelegationOwner.sol";
 import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
 import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
+import { IERC721Extended, IERC721 } from "../../interfaces/IERC721Extended.sol";
+
 import { AssetLogic } from "../logic/AssetLogic.sol";
 import { Errors } from "../helpers/Errors.sol";
 
@@ -216,15 +215,19 @@ contract TransactionGuard is Guard, Initializable {
                     revert Errors.TransactionGuard__checkLocked_noTransfer();
             }
         } else {
-            // move this check to an adaptor per asset address?
             if (_isTransfer(selector)) {
                 (, , uint256 assetId) = abi.decode(_data[4:], (address, address, uint256));
                 if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId)))
                     revert Errors.TransactionGuard__checkLocked_noTransfer();
-            } else if (selector == IERC721.approve.selector) {
+            } else if (_isApproving(selector)) {
                 (, uint256 assetId) = abi.decode(_data[4:], (address, uint256));
                 if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId)))
                     revert Errors.TransactionGuard__checkLocked_noApproval();
+            } else if (_isBurning(selector)) {
+                uint256 assetId = abi.decode(_data[4:], (uint256));
+                if (_isDelegating(_to, assetId) || _isLocked(AssetLogic.assetId(_to, assetId))) {
+                    revert Errors.TransactionGuard__checkLocked_noBurn();
+                }
             }
         }
     }
@@ -296,6 +299,14 @@ contract TransactionGuard is Guard, Initializable {
         return (_selector == IERC721.transferFrom.selector ||
             _selector == ERC721_SAFE_TRANSFER_FROM ||
             _selector == ERC721_SAFE_TRANSFER_FROM_DATA);
+    }
+
+    function _isBurning(bytes4 _selector) internal pure returns (bool) {
+        return (_selector == IERC721Extended.burn.selector);
+    }
+
+    function _isApproving(bytes4 _selector) internal pure returns (bool) {
+        return (_selector == IERC721.approve.selector);
     }
 
     function supportsInterface(

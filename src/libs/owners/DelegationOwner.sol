@@ -2,29 +2,29 @@
 
 pragma solidity 0.8.19;
 
-import {IGnosisSafe} from "../../interfaces/IGnosisSafe.sol";
-import {ICryptoPunks} from "../../interfaces/ICryptoPunks.sol";
-import {IAllowedControllers} from "../../interfaces/IAllowedControllers.sol";
-import {IACLManager} from "../../interfaces/IACLManager.sol";
-import {DelegationRecipes} from "../recipes/DelegationRecipes.sol";
+import { IGnosisSafe } from "../../interfaces/IGnosisSafe.sol";
+import { ICryptoPunks } from "../../interfaces/ICryptoPunks.sol";
+import { IAllowedControllers } from "../../interfaces/IAllowedControllers.sol";
+import { IACLManager } from "../../interfaces/IACLManager.sol";
+import { DelegationRecipes } from "../recipes/DelegationRecipes.sol";
 
-import {TransactionGuard} from "../guards/TransactionGuard.sol";
-import {AssetLogic} from "../logic/AssetLogic.sol";
-import {SafeLogic} from "../logic/SafeLogic.sol";
-import {Errors} from "../helpers/Errors.sol";
+import { TransactionGuard } from "../guards/TransactionGuard.sol";
+import { AssetLogic } from "../logic/AssetLogic.sol";
+import { SafeLogic } from "../logic/SafeLogic.sol";
+import { Errors } from "../helpers/Errors.sol";
 
-import {IDelegationOwner} from "../../interfaces/IDelegationOwner.sol";
+import { IDelegationOwner } from "../../interfaces/IDelegationOwner.sol";
 
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {Enum} from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import {GnosisSafe} from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import { Enum } from "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
+import { GnosisSafe } from "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
-import {BaseSafeOwner} from "../base/BaseSafeOwner.sol";
+import { BaseSafeOwner } from "../base/BaseSafeOwner.sol";
 
 /**
  * @title DelegationOwner
@@ -328,7 +328,7 @@ contract DelegationOwner is Initializable, IDelegationOwner, BaseSafeOwner {
 
         isExecuting = true;
         currentTxHash = IGnosisSafe(payable(safe)).getTransactionHash(
-        // Transaction info
+            // Transaction info
             _to,
             _value,
             _data,
