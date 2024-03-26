@@ -1,8 +1,28 @@
 {
-  "name": "delegation-wallet",
+  "name": "unlock-abstract-wallet",
   "version": "1.0.0",
+  "description": "Unlockd Wallet",
   "main": "index.js",
-  "license": "MIT",
+  "keywords": [
+    "unlockd",
+    "unlockd-abstract-wallet",
+    "protocol",
+    "protocol-v2",
+    "rwa",
+    "defi",
+    "ethereum",
+    "solidity"
+  ], 
+  "bugs": {
+    "url": "https://github.com/UnlockdFinance/unlockdv2-wallet/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UnlockdFinance/unlockdv2-wallet.git"
+  },
+  "author": "Daniel Martin Jimenez @damarnez",
+  "license": "BUSL-1.1",
+  "homepage": "https://unlockd.finance",
   "scripts": {
     "forge": "forge",
     "build": "forge build",
