@@ -48,7 +48,6 @@ contract KontrolAllowedControllersTest is Test, KontrolCheats {
         allowedControllers.setCollectionAllowance(collection, true);
     }
 
-
     /*
     function test_setCollectionAllowance_onlyGovernance() public {
         address caller = kevm.freshAddress();
