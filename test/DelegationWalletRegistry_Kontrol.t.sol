@@ -29,6 +29,14 @@ contract DelegationWalletRegistryTest is Test {
         registry.setFactory(_delegationWalletFactory);
     }
 
+    /*
+    function test_seFactory_onlyOwner() public {
+        vm.prank(karpincho);
+        vm.expectRevert("Ownable: caller is not the owner");
+        registry.setFactory(karpincho);
+    }
+    */
+
     function prove_setFactory_should_work(address _delegationWalletFactory) public {
         _notBuiltinAddress(_delegationWalletFactory);
         vm.assume(_delegationWalletFactory != address(0));
@@ -37,4 +45,12 @@ contract DelegationWalletRegistryTest is Test {
 
         assert(registry.delegationWalletFactory() == _delegationWalletFactory);
     }
+
+    /*
+    function test_seFactory_should_work() public {
+        registry.setFactory(karpincho);
+
+        assertEq(registry.delegationWalletFactory(), karpincho);
+    }
+    */
 }
