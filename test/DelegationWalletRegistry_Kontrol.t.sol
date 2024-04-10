@@ -5,7 +5,6 @@ pragma solidity 0.8.19;
 import "forge-std/Test.sol";
 
 import {IDelegationWalletRegistry, DelegationWalletRegistry, Errors} from "../src/DelegationWalletRegistry.sol";
-// import {Config} from "./utils/Config.sol";
 
 contract DelegationWalletRegistryTest is Test {
     DelegationWalletRegistry internal registry;

@@ -64,7 +64,7 @@ contract KontrolAllowedControllersTest is Test, KontrolCheats {
     }
     */
 
-    function test_setCollectionAllowance_valid(address collection) public {
+    function prove_setCollectionAllowance_valid(address collection) public {
         vm.assume(collection != address(0));
         _notBuiltinAddress(admin);
         
@@ -79,42 +79,6 @@ contract KontrolAllowedControllersTest is Test, KontrolCheats {
         assertFalse(allowedControllers.isAllowedCollection(collection));
     }
 
-    /*
-
-    function test_setCollectionAllowance_should_work() public {
-        vm.prank(kakaroto);
-
-        allowedControllers.setCollectionAllowance(karpincho, true);
-        assertTrue(allowedControllers.isAllowedCollection(karpincho));
-
-        vm.prank(kakaroto);
-
-        allowedControllers.setCollectionAllowance(karpincho, false);
-        assertFalse(allowedControllers.isAllowedCollection(karpincho));
-    }
-
-    function test_setCollectionAllowances_should_work() public {
-        address[] memory controllers = new address[](2);
-        controllers[0] = kakaroto;
-        controllers[1] = karpincho;
-        bool[] memory allowances = new bool[](2);
-        allowances[0] = true;
-        allowances[1] = true;
-
-        vm.prank(kakaroto);
-
-        allowedControllers.setCollectionsAllowances(controllers, allowances);
-
-        for (uint256 i; i < controllers.length;) {
-            assertEq(allowedControllers.isAllowedCollection(controllers[i]), allowances[i]);
-            unchecked {
-                i++;
-            }
-        }
-    }
-
-
-    /*
     /// @custom:kontrol-array-length-equals _delegationControllers: 2,
     function prove_setDelegationControllerAllowances(address[] memory _delegationControllers) public {
         uint256 i;
@@ -122,6 +86,9 @@ contract KontrolAllowedControllersTest is Test, KontrolCheats {
 
         for (i = 0; i < _delegationControllers.length;) {
             vm.assume(_delegationControllers[i] != address(0));
+            for (uint j = 0; j < i; j++) {
+                vm.assume(_delegationControllers[j] != _delegationControllers[i]);
+            }
             _allowances[i] = true;
 
             unchecked {
@@ -131,7 +98,6 @@ contract KontrolAllowedControllersTest is Test, KontrolCheats {
 
         _notBuiltinAddress(admin);
         vm.prank(admin);
-
 
         allowedControllers.setDelegationControllerAllowances(_delegationControllers, _allowances);
 
@@ -143,6 +109,7 @@ contract KontrolAllowedControllersTest is Test, KontrolCheats {
         }
     }
 
+    /*
     function test_setDelegationControllerAllowances_should_work() public {
         address[] memory controllers = new address[](2);
         controllers[0] = kakaroto;

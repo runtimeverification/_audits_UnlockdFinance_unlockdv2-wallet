@@ -114,9 +114,6 @@ module PROJECT-LEMMAS
       requires 0 <Int A andBool A <Int pow256
       [simplification, symbolic(_X, _Y), concrete(A)]
 
-    // lookup simplification lemma 
-    rule M:Map [ KEY <- #lookup(M, KEY) ] => M [simplification]
-
     //
     // #lookup
     //
@@ -136,6 +133,8 @@ module PROJECT-LEMMAS
        andBool V =/=Int 0
        [simplification]
 
+    // lookup simplification lemma 
+    rule M:Map [ KEY <- #lookup(M, KEY) ] => M [simplification]
 
     // Deconstruction of (maxUInt &Int ...)
     rule maxUInt8   &Int #asWord ( BA ) => #asWord ( #range(BA, 31,  1) ) requires lengthBytes(BA) ==Int 32 [simplification]
