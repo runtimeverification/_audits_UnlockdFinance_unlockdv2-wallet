@@ -83,7 +83,7 @@ get_log_results(){
 # empty assignment to activate/deactivate the corresponding flag
 lemmas=lemmas.k
 base_module=PROJECT-LEMMAS
-module=CounterTest:$base_module
+module=KontrolAllowedControllersTest:$base_module
 rekompile=--rekompile
 rekompile=
 regen=--regen
