@@ -1,0 +1,28 @@
+---
+name: "Test Proofs"
+on:
+  pull_request:
+    branches:
+      - main
+      - kontrol
+jobs:
+  test:
+    runs-on: [self-hosted, linux, flyweight]
+    steps:
+      - name: Run Proofs in KaaS
+        run: |
+          curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.JENKINS_GITHUB_PAT }}" \
+          https://api.github.com/repos/runtimeverification/_kaas_UnlockdFinance_unlockdv2-wallet/actions/workflows/unlockdfinance-kaas.yml/dispatches \
+          -d '{
+            "ref": "master",
+            "inputs": {
+              "branch_name": "${{ github.head_ref }}",
+              "extra_args": "script",
+              "statuses_sha": "${{ github.event.pull_request.head.sha }}",
+              "org": "runtimeverification",
+              "repository": "_audits_UnlockdFinance_unlockdv2-wallet",
+              "auth_token": "${{ secrets.JENKINS_GITHUB_PAT }}"
+            }
+          }'
