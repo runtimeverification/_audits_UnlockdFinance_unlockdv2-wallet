@@ -16,7 +16,7 @@ jobs:
           curl -X POST \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{ secrets.JENKINS_GITHUB_PAT }}" \
-          https://api.github.com/repos/runtimeverification/_kaas_<AUDIT CONVENTION NAME>/actions/workflows/<client>-ci.yml/dispatches \
+          https://api.github.com/repos/runtimeverification/_kaas_UnlockdFinance_unlockdv2-wallet/actions/workflows/unlockdfinance-kaas.yml/dispatches \
           -d '{
             "ref": "master",
             "inputs": {
@@ -24,7 +24,7 @@ jobs:
               "extra_args": "script",
               "statuses_sha": "${{ github.sha }}",
               "org": "runtimeverification",
-              "repository": "_audits_<AUDIT CONVENTION NAME>",
+              "repository": "_audits_UnlockdFinance_unlockdv2-wallet",
               "auth_token": "'"${{ secrets.JENKINS_GITHUB_PAT }}"'"
             }
           }'
