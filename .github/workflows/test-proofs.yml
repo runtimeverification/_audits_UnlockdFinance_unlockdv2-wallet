@@ -9,9 +9,6 @@ jobs:
   test:
     runs-on: [self-hosted, linux, flyweight]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Run Proofs in KaaS
         run: |
           curl -X POST \
@@ -26,6 +23,6 @@ jobs:
               "statuses_sha": "${{ github.sha }}",
               "org": "runtimeverification",
               "repository": "_audits_UnlockdFinance_unlockdv2-wallet",
-              "auth_token": "'"${{ secrets.JENKINS_GITHUB_PAT }}"'"
+              "auth_token": "${{ secrets.JENKINS_GITHUB_PAT }}"
             }
           }'
