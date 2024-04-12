@@ -33,7 +33,7 @@ usage_other() {
 }
 
 # Set Run Directory <root>/, This is where the foundtry.toml file generally is located.
-WORKSPACE_DIR=$( cd "$SCRIPT_HOME/../.." >/dev/null 2>&1 && pwd )
+WORKSPACE_DIR=$( cd "$SCRIPT_HOME/../../.." >/dev/null 2>&1 && pwd )
 pushd "$WORKSPACE_DIR" > /dev/null || exit
 
 # Variables

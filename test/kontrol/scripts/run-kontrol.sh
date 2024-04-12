@@ -81,7 +81,7 @@ get_log_results(){
 # such as `rekompile`. Such a pattern is intended for easy use while locally
 # developing and executing the proofs via this script. Comment/uncomment the
 # empty assignment to activate/deactivate the corresponding flag
-lemmas=../lemmas.k
+lemmas=lemmas.k
 base_module=PROJECT-LEMMAS
 module=CounterTest:$base_module
 rekompile=--rekompile
