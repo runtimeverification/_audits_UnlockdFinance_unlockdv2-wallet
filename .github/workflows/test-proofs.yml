@@ -20,7 +20,7 @@ jobs:
             "inputs": {
               "branch_name": "${{ github.head_ref }}",
               "extra_args": "script",
-              "statuses_sha": "${{ github.sha }}",
+              "statuses_sha": "${{ github.event.pull_request.head.sha }}",
               "org": "runtimeverification",
               "repository": "_audits_UnlockdFinance_unlockdv2-wallet",
               "auth_token": "${{ secrets.JENKINS_GITHUB_PAT }}"
