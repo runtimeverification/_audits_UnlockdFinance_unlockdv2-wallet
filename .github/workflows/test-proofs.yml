@@ -1,0 +1,30 @@
+---
+name: "Test Proofs"
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  test:
+    runs-on: [self-hosted, linux, flyweight]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Proofs in KaaS
+        run: |
+          curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.JENKINS_GITHUB_PAT }}" \
+          https://api.github.com/repos/runtimeverification/_kaas_<AUDIT CONVENTION NAME>/actions/workflows/<client>-ci.yml/dispatches \
+          -d '{
+            "ref": "master",
+            "inputs": {
+              "branch_name": "${{ github.ref_name }}",
+              "extra_args": "script",
+              "statuses_sha": "${{ github.sha }}",
+              "org": "runtimeverification",
+              "repository": "_audits_<AUDIT CONVENTION NAME>",
+              "auth_token": "'"${{ secrets.JENKINS_GITHUB_PAT }}"'"
+            }
+          }'
