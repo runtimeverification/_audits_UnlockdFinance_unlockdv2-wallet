@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - kontrol
 jobs:
   test:
     runs-on: [self-hosted, linux, flyweight]
